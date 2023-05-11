@@ -6,7 +6,8 @@ import 'package:path/path.dart' as p;
 import 'package:sqflite/sqflite.dart';
 import 'dart:io';
 import 'package:flutter/services.dart';
-List<Map> mapListtest = <Map>[];
+List<Map> mapPgList = <Map>[];
+List<Widget> itemsPgList = <Widget>[];
 /*------------------------------------------------------------------
 全共通のメソッド
  -------------------------------------------------------------------*/
@@ -148,27 +149,6 @@ Future<void> insvolMaster(int pgNo, int pgKind,int vol,int airDt)  async {
   });
 }
 /*------------------------------------------------------------------
-テスト用ロード処理
- -------------------------------------------------------------------*/
-Future<void> testLoad() async{
-  mapListtest = <Map>[];
-  String dbPath = await getDatabasesPath();
-  String path = p.join(dbPath, 'internal_assets.db');
-  Database database = await openDatabase(path, version: 1);
-  mapListtest =
-  await database.rawQuery("SELECT * From pgMaster order by pgNo");
-  for(Map item in mapListtest){
-    debugPrint("pgName:${item['pgName']}");
-
-  }
-  mapListtest =
-  await database.rawQuery("SELECT * From volMaster order by pgNo");
-  for(Map item in mapListtest){
-    debugPrint("pgNo:${item['pgNo']} airDt:${item['airDt']} ");
-
-  }
-}
-/*------------------------------------------------------------------
 main開始
  -------------------------------------------------------------------*/
 void main() async {
@@ -178,7 +158,6 @@ void main() async {
 
   await firstRun();
   await firstFireStoreDBIns();
-  await testLoad();
   runApp(MyApp());
 }
 
@@ -189,7 +168,6 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-
         home: const MainScreen(),
     );
   }
@@ -203,22 +181,99 @@ class MainScreen extends StatefulWidget {
 }
 
 class _MainScreenState extends State<MainScreen>  {
-
+  @override
+  void initState() {
+    super.initState();
+    init();
+  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("test"),
+        centerTitle: true,
+        title: Text("仮面ライダー番組一覧", style: const TextStyle(fontSize: 30.0, color: Colors.white,),),
+        backgroundColor: Colors.black,
       ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text('You have pushed the button this many times:',),
-          ],
+      body:  Container(
+        constraints: BoxConstraints(
+          minWidth: double.infinity,
+          minHeight: double.infinity,
+        ),
+        decoration: BoxDecoration(
+          // image: DecorationImage(
+          //   image: AssetImage('assets/mokume.png'),
+          //   fit: BoxFit.cover,
+          // ),
+          color: Colors.black,
+        ),
+        child:SingleChildScrollView(
+          child: Column(
+            children: <Widget>[
+              const Padding(padding: EdgeInsets.all(30)),
+              ...itemsPgList
+            ],
+          ),
         ),
       ),
     );
   }
+  /*------------------------------------------------------------------
+初期処理
+ -------------------------------------------------------------------*/
+  Future<void> init() async {
+    await loadList();
+    await getItems();
+  }
+  /*------------------------------------------------------------------
+pgMasterからロード
+ -------------------------------------------------------------------*/
+  Future<void> loadList() async {
+    String dbPath = await getDatabasesPath();
+    String path = p.join(dbPath, 'internal_assets.db');
+    Database database = await openDatabase(path, version: 1);
+    mapPgList = await database.rawQuery("SELECT * From pgMaster order by pgNo");
+  }
+  /*------------------------------------------------------------------
+ListViewを作成する
+ -------------------------------------------------------------------*/
+  Future<void> getItems() async {
+    List<Widget> list = <Widget>[];
+    int albumNo = 0;
+    for (Map item in mapPgList) {
+      list.add(
+        Card(
+          color: Colors.black,
+          margin: const EdgeInsets.fromLTRB(15, 0, 15, 15),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15),
 
+          ),
+          child: ListTile(
+            contentPadding: const EdgeInsets.all(5),
+            title: Text(
+              '${item['airDtSt']}   ${item['pgName']}  ',
+              style: TextStyle(color: Colors.white, fontSize: 10),
+            ),
+            selected: albumNo == item['pgNo'],
+            // tileColor: const Color(0xFFF5F5DC),
+            onTap: () {
+              //albumNo = item['albumNo'];
+              _tapTile(item['pgNo'],item['pgName'].toString());
+            },
+          ),
+        ),
+      );
+    }
+    setState(() {
+      itemsPgList = list;
+    });
+  }
+
+   void _tapTile(int albumNo ,String albumName) async {
+  //   Navigator.push(
+  //       context,
+  //       MaterialPageRoute(
+  //         builder: (context) => ListGalleryScreen(albumNo,albumName),
+  //       ));
+   }
 }
