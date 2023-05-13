@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart' as p;
-import 'dart:io';
 
 List<Widget> pgDetailList = <Widget>[];
 
@@ -20,18 +19,14 @@ class pgDetailScreen extends StatefulWidget {
 class _pgDetailScreenState extends State<pgDetailScreen> {
   int pgNo;
   String pgName;
-
   _pgDetailScreenState(this.pgNo, this.pgName);
-
   //変数の宣言
   List<Map> mapPgDetailList = <Map>[];
-
   @override
   void initState() {
     super.initState();
     load();
   }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -44,7 +39,7 @@ class _pgDetailScreenState extends State<pgDetailScreen> {
             color: Colors.white,
           ),
         ),
-        backgroundColor: Colors.transparent,
+        backgroundColor: Colors.black,
         // AppBarの背景色を透明にする
         elevation: 0,
         // 影を無効にする
@@ -68,19 +63,12 @@ class _pgDetailScreenState extends State<pgDetailScreen> {
           minHeight: double.infinity,
         ),
         decoration: BoxDecoration(
-          // image: DecorationImage(
-          //   image: AssetImage('assets/mokume.png'),
-          //   fit: BoxFit.cover,
-          // ),
+          color: Colors.black,
         ),
         child: SingleChildScrollView(
           child: Column(
             children: <Widget>[
               ...pgDetailList,
-              (mapPgDetailList.isNotEmpty)
-                  ? Text('')
-                  : Text('右下のボタンから写真を追加してください',
-                  style: TextStyle(fontSize: 17.0, color: Colors.white,)),
             ],
           ),
         ),
@@ -117,15 +105,14 @@ class _pgDetailScreenState extends State<pgDetailScreen> {
  -------------------------------------------------------------------*/
   Future<void> getItems() async {
     List<Widget> list = <Widget>[];
-    int photoNo = 0;
     String strVol = "";
 
     for (Map item in mapPgDetailList) {
       strVol = item['vol'].toString();
       list.add(
         Card(
-          color: const Color(0xFFF5F5DC),
-          margin: const EdgeInsets.fromLTRB(15, 0, 15, 15),
+          color: Colors.black,
+        //  margin: const EdgeInsets.fromLTRB(15, 0, 15, 15),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(15),
           ),
