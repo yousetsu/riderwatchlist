@@ -8,20 +8,9 @@ import 'dart:io';
 import 'package:flutter/services.dart';
 import './const.dart';
 import './pgDetail.dart';
+import './global.dart';
 
-List<Map> mapPgList = <Map>[];
-List<Map> mapSetting = <Map>[];
 List<Widget> itemsPgList = <Widget>[];
-int syncDt = 0;
-bool gengoShowaFlg = true;
-bool gengoHeiseiFlg = true;
-bool gengoReiwaFlg = true;
-
-bool pgKindTVFlg = true;
-bool pgKindMVFlg = true;
-bool pgKindVSFlg = true;
-bool pgKindOTHERFlg = true;
-
 /*------------------------------------------------------------------
 全共通のメソッド
  -------------------------------------------------------------------*/
@@ -249,23 +238,15 @@ class _MainScreenState extends State<MainScreen> {
             ElevatedButton(onPressed: ()async{changepgKindPgList(cnsPgKindMV);}, style: ElevatedButton.styleFrom(backgroundColor: pgKindMVFlg ? Colors.orange : Colors.black,),  child: Text('映画'),),
             ElevatedButton(onPressed: ()async{changepgKindPgList(cnsPgKindVS);}, style: ElevatedButton.styleFrom(backgroundColor: pgKindVSFlg ? Colors.orange : Colors.black,), child: Text('Vシネ'),),
             ElevatedButton(onPressed: ()async{changepgKindPgList(cnsPgKindOTHERS);}, style: ElevatedButton.styleFrom(backgroundColor: pgKindOTHERFlg ? Colors.orange : Colors.black,), child: Text('その他'),),
-
           ],),
             Divider(color: Colors.white, thickness: 2,),
             Text("　　　公開日　　　番組名",
               style: const TextStyle(fontSize: 15.0, color: Colors.white,),),
 
-            //   SingleChildScrollView(
-            //  child: Column(
-            //    children: <Widget>[
             Expanded(
                 child: ListView(
                   children: itemsPgList,
                 )),
-            //     ...itemsPgList
-            //  ],
-            //    ),
-            //  ),
           ],
         ),
       ),

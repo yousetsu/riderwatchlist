@@ -34,3 +34,6 @@ flutter:
   assets:
     - assets/exRiderLocal.db
     - assets/riderchkappicon.png
+    - assets/mv.png
+    - assets/vs.png
+    - assets/other.png
