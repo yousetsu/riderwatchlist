@@ -7,6 +7,7 @@ import 'package:sqflite/sqflite.dart';
 import 'dart:io';
 import 'package:flutter/services.dart';
 import './const.dart';
+import './pgDetail.dart';
 
 List<Map> mapPgList = <Map>[];
 List<Map> mapSetting = <Map>[];
@@ -514,10 +515,10 @@ ListViewを作成する
   }
 
   void _tapTile(int pgNo, String pgName) async {
-       // Navigator.push(
-       //     context,
-       //     MaterialPageRoute(
-       //       builder: (context) => pgDetailScreen(pgNo,pgName),
-       //     ));
+        Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => pgDetailScreen(pgNo,pgName),
+            ));
   }
 }
