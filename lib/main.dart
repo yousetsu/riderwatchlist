@@ -6,9 +6,21 @@ import 'package:path/path.dart' as p;
 import 'package:sqflite/sqflite.dart';
 import 'dart:io';
 import 'package:flutter/services.dart';
+import './const.dart';
 
 List<Map> mapPgList = <Map>[];
+List<Map> mapSetting = <Map>[];
 List<Widget> itemsPgList = <Widget>[];
+int syncDt = 0;
+bool gengoShowaFlg = true;
+bool gengoHeiseiFlg = true;
+bool gengoReiwaFlg = true;
+
+bool pgKindTVFlg = true;
+bool pgKindMVFlg = true;
+bool pgKindVSFlg = true;
+bool pgKindOTHERFlg = true;
+
 /*------------------------------------------------------------------
 全共通のメソッド
  -------------------------------------------------------------------*/
@@ -30,7 +42,7 @@ Future<void> firstRun() async {
     // Copy from asset
     ByteData data = await rootBundle.load(p.join("assets", "exRiderLocal.db"));
     List<int> bytes =
-        data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes);
+    data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes);
     // Write and flush the bytes written
     await File(path).writeAsBytes(bytes, flush: true);
   } else {
@@ -75,7 +87,7 @@ pgMaster登録
 Future<void> pgMasterINS() async {
   //PG Master登録
   final collectionRef =
-      FirebaseFirestore.instance.collection('riderMaster'); // DocumentReference
+  FirebaseFirestore.instance.collection('riderMaster'); // DocumentReference
   final querySnapshot = await collectionRef.get(); // QuerySnapshot
   final queryDocSnapshot = querySnapshot.docs; // List<QueryDocumentSnapshot>
   for (final snapshot in queryDocSnapshot) {
@@ -99,7 +111,7 @@ Future<void> insPgMaster(int pgNo, String pgName, int pgKind, int airDtSt,
     version: 1,
   );
   query =
-      'INSERT INTO pgMaster(pgNo,pgName,pgKind,airDtSt,airDtEnd,gengo,kaku1,kaku2,kaku3,kaku4) values($pgNo,"$pgName",$pgKind,$airDtSt,$airDtEnd,$gengo,null,null,null,null) ';
+  'INSERT INTO pgMaster(pgNo,pgName,pgKind,airDtSt,airDtEnd,gengo,kaku1,kaku2,kaku3,kaku4) values($pgNo,"$pgName",$pgKind,$airDtSt,$airDtEnd,$gengo,null,null,null,null) ';
   await database.transaction((txn) async {
     await txn.rawInsert(query);
   });
@@ -129,7 +141,7 @@ pgMaster登録
 Future<void> volMasterINS() async {
   //PG Master登録
   final collectionRef =
-      FirebaseFirestore.instance.collection('volMaster'); // DocumentReference
+  FirebaseFirestore.instance.collection('volMaster'); // DocumentReference
   final querySnapshot = await collectionRef.get(); // QuerySnapshot
   final queryDocSnapshot = querySnapshot.docs; // List<QueryDocumentSnapshot>
   for (final snapshot in queryDocSnapshot) {
@@ -151,7 +163,7 @@ Future<void> insvolMaster(int pgNo, int pgKind, int vol, int airDt) async {
     version: 1,
   );
   query =
-      'INSERT INTO volMaster(pgNo,pgKind,vol,airDt,airDt_mvEnd,volNm,kaku1,kaku2,kaku3,kaku4) values($pgNo,$pgKind,$vol,$airDt,null,null,null,null,null,null) ';
+  'INSERT INTO volMaster(pgNo,pgKind,vol,airDt,airDt_mvEnd,volNm,kaku1,kaku2,kaku3,kaku4) values($pgNo,$pgKind,$vol,$airDt,null,null,null,null,null,null) ';
   await database.transaction((txn) async {
     await txn.rawInsert(query);
   });
@@ -221,32 +233,36 @@ class _MainScreenState extends State<MainScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            ElevatedButton(
-              onPressed: () {
-                // ボタンが押された時の処理
-              },
-              child: Text('ボタン'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                // ボタンが押された時の処理
-              },
-              child: Text('ボタン2'),
-            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: <Widget>[
+                ElevatedButton(onPressed: ()async{changeGengoPgList(cnsGengoShowa);}, style: ElevatedButton.styleFrom(backgroundColor: gengoShowaFlg ? Colors.blue : Colors.black,), child: Text('昭和')),
+                ElevatedButton(onPressed: ()async{changeGengoPgList(cnsGengoHeisei);}, style: ElevatedButton.styleFrom(backgroundColor: gengoHeiseiFlg ? Colors.blue : Colors.black,),child: Text('平成')),
+                ElevatedButton(onPressed: ()async{changeGengoPgList(cnsGengoRaiwa);},style: ElevatedButton.styleFrom(backgroundColor: gengoReiwaFlg ? Colors.blue : Colors.black,), child: Text('令和')),
+              ],),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: <Widget>[
+            ElevatedButton(onPressed: ()async{changepgKindPgList(cnsPgKindTV);}, style: ElevatedButton.styleFrom(backgroundColor: pgKindTVFlg ? Colors.orange : Colors.black,), child: Text('TV'),),
+            ElevatedButton(onPressed: ()async{changepgKindPgList(cnsPgKindMV);}, style: ElevatedButton.styleFrom(backgroundColor: pgKindMVFlg ? Colors.orange : Colors.black,),  child: Text('映画'),),
+            ElevatedButton(onPressed: ()async{changepgKindPgList(cnsPgKindVS);}, style: ElevatedButton.styleFrom(backgroundColor: pgKindVSFlg ? Colors.orange : Colors.black,), child: Text('Vシネ'),),
+            ElevatedButton(onPressed: ()async{changepgKindPgList(cnsPgKindOTHERS);}, style: ElevatedButton.styleFrom(backgroundColor: pgKindOTHERFlg ? Colors.orange : Colors.black,), child: Text('Vシネ'),),
 
+          ],),
             Divider(
               color: Colors.white,
               thickness: 2,
             ),
-            Text("公開日　　　番組名", style: const TextStyle(fontSize: 15.0, color: Colors.white,),),
+            Text("公開日　　　番組名",
+              style: const TextStyle(fontSize: 15.0, color: Colors.white,),),
 
             //   SingleChildScrollView(
             //  child: Column(
             //    children: <Widget>[
             Expanded(
                 child: ListView(
-              children: itemsPgList,
-            )),
+                  children: itemsPgList,
+                )),
             //     ...itemsPgList
             //  ],
             //    ),
@@ -256,23 +272,169 @@ class _MainScreenState extends State<MainScreen> {
       ),
     );
   }
-
   /*------------------------------------------------------------------
-初期処理
+元号変更
  -------------------------------------------------------------------*/
-  Future<void> init() async {
+  Future<void> changeGengoPgList(int gengo) async {
+    switch (gengo) {
+      case cnsGengoShowa:
+        gengoShowaFlg = !gengoShowaFlg;
+        break;
+      case cnsGengoHeisei:
+        gengoHeiseiFlg = !gengoHeiseiFlg;
+        break;
+      case cnsGengoRaiwa:
+        gengoReiwaFlg = !gengoReiwaFlg;
+        break;
+      default:
+      // 上記のいずれのケースにも該当しない場合の処理
+    }
     await loadList();
     await getItems();
   }
 
   /*------------------------------------------------------------------
+放映種類変更
+ -------------------------------------------------------------------*/
+  Future<void> changepgKindPgList(int pgKind) async {
+    switch (pgKind) {
+      case cnsPgKindTV:
+        pgKindTVFlg = !pgKindTVFlg;
+        break;
+      case cnsPgKindMV:
+        pgKindMVFlg = !pgKindMVFlg;
+        break;
+      case cnsPgKindVS:
+        pgKindVSFlg = !pgKindVSFlg;
+        break;
+      case cnsPgKindOTHERS:
+        pgKindOTHERFlg = !pgKindOTHERFlg;
+        break;
+      default:
+      // 上記のいずれのケースにも該当しない場合の処理
+    }
+    await loadList();
+    await getItems();
+  }
+  /*------------------------------------------------------------------
 pgMasterからロード
  -------------------------------------------------------------------*/
-  Future<void> loadList() async {
+  Future<void> loadSelGengoList() async {
     String dbPath = await getDatabasesPath();
     String path = p.join(dbPath, 'internal_assets.db');
     Database database = await openDatabase(path, version: 1);
     mapPgList = await database.rawQuery("SELECT * From pgMaster order by pgNo");
+  }
+
+
+  /*------------------------------------------------------------------
+初期処理
+ -------------------------------------------------------------------*/
+  Future<void> init() async {
+    await getSetting();
+    await loadList();
+    await getItems();
+  }
+  /*------------------------------------------------------------------
+設定テーブルからロード
+ -------------------------------------------------------------------*/
+  Future<void> getSetting() async {
+    String dbPath = await getDatabasesPath();
+    String path = p.join(dbPath, 'internal_assets.db');
+    Database database = await openDatabase(path, version: 1);
+    mapSetting = await database.rawQuery("SELECT * From setting ");
+    for (Map item in mapSetting) {
+       syncDt = item['syncdt'];
+       gengoShowaFlg = (item['showa'] == 1)?true:false;
+       gengoHeiseiFlg = (item['heisei'] == 1)?true:false;
+       gengoReiwaFlg = (item['reiwa'] == 1)?true:false;
+
+       pgKindTVFlg = (item['tv'] == 1)?true:false;
+       pgKindMVFlg = (item['movie'] == 1)?true:false;
+       pgKindVSFlg = (item['vshine'] == 1)?true:false;
+       pgKindOTHERFlg = (item['other'] == 1)?true:false;
+
+    }
+
+  }
+  /*------------------------------------------------------------------
+pgMasterからロード
+ -------------------------------------------------------------------*/
+  Future<void> loadList() async {
+    String strWheregengo = "(";
+    String strWherePgKind = "(";
+    bool Continue = false;
+    String dbPath = await getDatabasesPath();
+    String path = p.join(dbPath, 'internal_assets.db');
+    Database database = await openDatabase(path, version: 1);
+
+    //元号Where条件編集
+    if(gengoShowaFlg) {
+      strWheregengo = strWheregengo + cnsGengoShowa.toString();
+      Continue = true;
+    }
+    if(gengoHeiseiFlg) {
+      if (Continue) {
+        strWheregengo = strWheregengo + ',' + cnsGengoHeisei.toString();
+      }else{
+        strWheregengo = strWheregengo + cnsGengoHeisei.toString();
+      }
+      Continue = true;
+    }
+    if(gengoReiwaFlg) {
+      if (Continue) {
+        strWheregengo = strWheregengo + ',' + cnsGengoRaiwa.toString();
+      }else{
+        strWheregengo = strWheregengo + cnsGengoRaiwa.toString();
+      }
+      Continue = true;
+    }
+    if(Continue){
+      strWheregengo = strWheregengo + ')';
+    }else{
+      strWheregengo = '(0)';
+    }
+
+    //放送種類条件編集
+    Continue = false;
+    if(pgKindTVFlg) {
+      strWherePgKind = strWherePgKind + cnsPgKindTV.toString();
+      Continue = true;
+    }
+    if(pgKindMVFlg) {
+      if (Continue) {
+        strWherePgKind = strWherePgKind + ',' + cnsPgKindMV.toString();
+      }else{
+        strWherePgKind = strWherePgKind + cnsPgKindMV.toString();
+      }
+      Continue = true;
+    }
+    if(pgKindVSFlg) {
+      if (Continue) {
+        strWherePgKind = strWherePgKind + ',' + cnsPgKindVS.toString();
+      }else{
+        strWherePgKind = strWherePgKind + cnsPgKindVS.toString();
+      }
+      Continue = true;
+    }
+    if(pgKindOTHERFlg) {
+      if (Continue) {
+        strWherePgKind = strWherePgKind + ',' + cnsPgKindOTHERS.toString();
+      }else{
+        strWherePgKind = strWherePgKind + cnsPgKindOTHERS.toString();
+      }
+      Continue = true;
+    }
+    if(Continue){
+      strWherePgKind = strWherePgKind + ')';
+    }else{
+      strWherePgKind = '(0)';
+    }
+
+    debugPrint('strWheregengo:$strWheregengo');
+    debugPrint('strWherePgKind:$strWherePgKind');
+
+    mapPgList = await database.rawQuery("SELECT * From pgMaster where gengo in $strWheregengo and pgKind in $strWherePgKind order by pgNo");
   }
 
   /*------------------------------------------------------------------
@@ -281,32 +443,6 @@ ListViewを作成する
   Future<void> getItems() async {
     List<Widget> list = <Widget>[];
     int albumNo = 0;
-//最初の1行目はタイトル
-//     list.add(
-//       Card(
-//         color: Colors.black,
-//         margin: const EdgeInsets.fromLTRB(15, 0, 15, 15),
-//         shape: RoundedRectangleBorder(
-//           borderRadius: BorderRadius.circular(15),
-//         ),
-//         child: ListTile(
-//           title: Text(
-//             '公開日',
-//             style: TextStyle(
-//               fontSize: 18.0,
-//               fontWeight: FontWeight.bold,
-//             ),
-//           ),
-//           subtitle: Text(
-//             '番組名',
-//             style: TextStyle(
-//               fontSize: 16.0,
-//               fontWeight: FontWeight.bold,
-//             ),
-//           ),
-//         ),
-//       ),
-//     );
 
     //Divider(color: Colors.white, thickness: 1),
 
