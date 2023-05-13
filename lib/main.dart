@@ -233,6 +233,7 @@ class _MainScreenState extends State<MainScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
+            Divider(color: Colors.white, thickness: 2,),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[
@@ -249,11 +250,8 @@ class _MainScreenState extends State<MainScreen> {
             ElevatedButton(onPressed: ()async{changepgKindPgList(cnsPgKindOTHERS);}, style: ElevatedButton.styleFrom(backgroundColor: pgKindOTHERFlg ? Colors.orange : Colors.black,), child: Text('その他'),),
 
           ],),
-            Divider(
-              color: Colors.white,
-              thickness: 2,
-            ),
-            Text("公開日　　　番組名",
+            Divider(color: Colors.white, thickness: 2,),
+            Text("　　　公開日　　　番組名",
               style: const TextStyle(fontSize: 15.0, color: Colors.white,),),
 
             //   SingleChildScrollView(
@@ -479,22 +477,26 @@ ListViewを作成する
   Future<void> getItems() async {
     List<Widget> list = <Widget>[];
     int albumNo = 0;
-
+    String strAirDt = "";
     //Divider(color: Colors.white, thickness: 1),
 
     for (Map item in mapPgList) {
+       strAirDt = '${item['airDtSt'].toString().substring(0,4)}年${item['airDtSt'].toString().substring(4,6)}月${item['airDtSt'].toString().substring(6,8)}日 ';
       list.add(
         Card(
-          color: Colors.black,
-          margin: const EdgeInsets.fromLTRB(15, 0, 15, 15),
+          color: Colors.black26,
+        //  margin: const EdgeInsets.fromLTRB(15, 0, 15, 15),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(15),
+          //  borderRadius: BorderRadius.circular(15),
+          //  side: BorderSide(color: Colors.purple, width: 1), // 枠線の色を設定
           ),
           child: ListTile(
-            contentPadding: const EdgeInsets.all(5),
-            title: Text(
-              '${item['airDtSt']}   ${item['pgName']}  ',
-              style: TextStyle(color: Colors.white, fontSize: 10),
+            title:
+            Row(
+              children: <Widget>[
+                Text('$strAirDt', style: TextStyle(color: Colors.white, fontSize: 12),),
+                Text('   ${item['pgName']}', style: TextStyle(color: Colors.white, fontSize: 20),),
+              ],
             ),
             selected: albumNo == item['pgNo'],
             // tileColor: const Color(0xFFF5F5DC),
@@ -511,11 +513,11 @@ ListViewを作成する
     });
   }
 
-  void _tapTile(int albumNo, String albumName) async {
-    //   Navigator.push(
-    //       context,
-    //       MaterialPageRoute(
-    //         builder: (context) => ListGalleryScreen(albumNo,albumName),
-    //       ));
+  void _tapTile(int pgNo, String pgName) async {
+       // Navigator.push(
+       //     context,
+       //     MaterialPageRoute(
+       //       builder: (context) => pgDetailScreen(pgNo,pgName),
+       //     ));
   }
 }
