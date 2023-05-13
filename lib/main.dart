@@ -246,7 +246,7 @@ class _MainScreenState extends State<MainScreen> {
             ElevatedButton(onPressed: ()async{changepgKindPgList(cnsPgKindTV);}, style: ElevatedButton.styleFrom(backgroundColor: pgKindTVFlg ? Colors.orange : Colors.black,), child: Text('TV'),),
             ElevatedButton(onPressed: ()async{changepgKindPgList(cnsPgKindMV);}, style: ElevatedButton.styleFrom(backgroundColor: pgKindMVFlg ? Colors.orange : Colors.black,),  child: Text('映画'),),
             ElevatedButton(onPressed: ()async{changepgKindPgList(cnsPgKindVS);}, style: ElevatedButton.styleFrom(backgroundColor: pgKindVSFlg ? Colors.orange : Colors.black,), child: Text('Vシネ'),),
-            ElevatedButton(onPressed: ()async{changepgKindPgList(cnsPgKindOTHERS);}, style: ElevatedButton.styleFrom(backgroundColor: pgKindOTHERFlg ? Colors.orange : Colors.black,), child: Text('Vシネ'),),
+            ElevatedButton(onPressed: ()async{changepgKindPgList(cnsPgKindOTHERS);}, style: ElevatedButton.styleFrom(backgroundColor: pgKindOTHERFlg ? Colors.orange : Colors.black,), child: Text('その他'),),
 
           ],),
             Divider(
@@ -289,10 +289,44 @@ class _MainScreenState extends State<MainScreen> {
       default:
       // 上記のいずれのケースにも該当しない場合の処理
     }
+    await updSettingGengoPgkind();
     await loadList();
     await getItems();
   }
+  /*------------------------------------------------------------------
+設定テーブルに更新
+ -------------------------------------------------------------------*/
+  Future<void> updSettingGengoPgkind() async {
+    String query = "";
+    String dbPath = await getDatabasesPath();
+    String path = p.join(dbPath, 'internal_assets.db');
+    Database database = await openDatabase(path, version: 1);
 
+    int showa = 0;
+    int heisei = 0;
+    int reiwa = 0;
+    int tv = 0;
+    int movie = 0;
+    int vshine = 0;
+    int other = 0;
+
+    showa = gengoShowaFlg?BtFlgOn:BtFlgOff;
+    heisei = gengoHeiseiFlg?BtFlgOn:BtFlgOff;
+    reiwa = gengoReiwaFlg?BtFlgOn:BtFlgOff;
+
+    tv = pgKindTVFlg?BtFlgOn:BtFlgOff;
+    movie = pgKindMVFlg?BtFlgOn:BtFlgOff;
+    vshine = pgKindVSFlg?BtFlgOn:BtFlgOff;
+    other = pgKindOTHERFlg?BtFlgOn:BtFlgOff;
+
+    query =
+    'UPDATE setting set showa = $showa ,heisei = $heisei ,reiwa = $reiwa ,tv = $tv ,movie = $movie ,vshine = $vshine ,other = $other  ';
+    await database.transaction((txn) async {
+      await txn.rawInsert(query);
+    });
+
+
+  }
   /*------------------------------------------------------------------
 放映種類変更
  -------------------------------------------------------------------*/
@@ -313,6 +347,7 @@ class _MainScreenState extends State<MainScreen> {
       default:
       // 上記のいずれのケースにも該当しない場合の処理
     }
+    await updSettingGengoPgkind();
     await loadList();
     await getItems();
   }
@@ -354,6 +389,7 @@ pgMasterからロード
        pgKindVSFlg = (item['vshine'] == 1)?true:false;
        pgKindOTHERFlg = (item['other'] == 1)?true:false;
 
+       debugPrint('syncdt: ${item['syncdt']} showa:${item['showa']} heisei:${item['heisei']} reiwa:${item['reiwa']} tv:${item['tv']} movie:${item['movie']} vshine:${item['vshine']} other:${item['other']}');
     }
 
   }
