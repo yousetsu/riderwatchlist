@@ -10,3 +10,6 @@ bool pgKindTVFlg = true;
 bool pgKindMVFlg = true;
 bool pgKindVSFlg = true;
 bool pgKindOTHERFlg = true;
+
+
+bool pg_otherFlg = false;

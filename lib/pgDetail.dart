@@ -10,18 +10,22 @@ List<Widget> pgDetailList = <Widget>[];
 class pgDetailScreen extends StatefulWidget {
   int pgNo;
   String pgName;
+  int airDtSt;
+  int airDtEnd;
 
-  pgDetailScreen(this.pgNo, this.pgName);
+  pgDetailScreen(this.pgNo, this.pgName, this.airDtSt, this.airDtEnd);
 
   @override
   State<pgDetailScreen> createState() =>
-      _pgDetailScreenState(this.pgNo, this.pgName);
+      _pgDetailScreenState(this.pgNo, this.pgName, this.airDtSt, this.airDtEnd);
 }
 
 class _pgDetailScreenState extends State<pgDetailScreen> {
   int pgNo;
   String pgName;
-  _pgDetailScreenState(this.pgNo, this.pgName);
+  int airDtSt;
+  int airDtEnd;
+  _pgDetailScreenState(this.pgNo, this.pgName, this.airDtSt, this.airDtEnd);
   //変数の宣言
   List<Map> mapPgDetailList = <Map>[];
   @override
@@ -69,6 +73,11 @@ class _pgDetailScreenState extends State<pgDetailScreen> {
                 ElevatedButton(onPressed: ()async{chgPgKindDetail(cnsPgKindVS);}, style: ElevatedButton.styleFrom(backgroundColor: pgKindVSFlg ? Colors.orange : Colors.black,), child: Text('Vシネ'),),
                 ElevatedButton(onPressed: ()async{chgPgKindDetail(cnsPgKindOTHERS);}, style: ElevatedButton.styleFrom(backgroundColor: pgKindOTHERFlg ? Colors.orange : Colors.black,), child: Text('その他'),),
               ],),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: <Widget>[
+            ElevatedButton(onPressed: ()async{chgPgOtherDetail();}, style: ElevatedButton.styleFrom(backgroundColor: pg_otherFlg ? Colors.green : Colors.black,), child: Text('放映期間中、他の作品も表示する'),),
+          ],),
             Divider(color: Colors.white, thickness: 2,),
             Text("　　　公開日　　　作品名　　話数",
               style: const TextStyle(fontSize: 15.0, color: Colors.white,),),
@@ -95,17 +104,59 @@ class _pgDetailScreenState extends State<pgDetailScreen> {
   ロード処理
  -------------------------------------------------------------------*/
   Future<void> getPgDetail() async {
+    String strWherePgKind = "(";
+    bool Continue = false;
     String dbPath = await getDatabasesPath();
     String path = p.join(dbPath, 'internal_assets.db');
     Database database = await openDatabase(
       path,
       version: 1,
     );
-    mapPgDetailList = await database.rawQuery(
-        "SELECT * From volMaster where pgNo = $pgNo order by airDt");
+    //放送種類条件編集
+    Continue = false;
+    if(pgKindTVFlg) {
+      strWherePgKind = strWherePgKind + cnsPgKindTV.toString();
+      Continue = true;
+    }
+    if(pgKindMVFlg) {
+      if (Continue) {
+        strWherePgKind = strWherePgKind + ',' + cnsPgKindMV.toString();
+      }else{
+        strWherePgKind = strWherePgKind + cnsPgKindMV.toString();
+      }
+      Continue = true;
+    }
+    if(pgKindVSFlg) {
+      if (Continue) {
+        strWherePgKind = strWherePgKind + ',' + cnsPgKindVS.toString();
+      }else{
+        strWherePgKind = strWherePgKind + cnsPgKindVS.toString();
+      }
+      Continue = true;
+    }
+    if(pgKindOTHERFlg) {
+      if (Continue) {
+        strWherePgKind = strWherePgKind + ',' + cnsPgKindOTHERS.toString();
+      }else{
+        strWherePgKind = strWherePgKind + cnsPgKindOTHERS.toString();
+      }
+      Continue = true;
+    }
+    if(Continue){
+      strWherePgKind = strWherePgKind + ')';
+    }else{
+      strWherePgKind = '(0)';
+    }
+
+    if(pg_otherFlg == false) {
+      mapPgDetailList = await database.rawQuery(
+          "SELECT * From volMaster where pgNo = $pgNo and pgKind in $strWherePgKind order by vol");
+    }else{
+      mapPgDetailList = await database.rawQuery(
+          "SELECT * From volMaster where pgKind in $strWherePgKind and airDt >= $airDtSt and airDt <= $airDtEnd order by vol");
+    }
+
   }
-
-
   /*------------------------------------------------------------------
 リスト作成
  -------------------------------------------------------------------*/
@@ -113,13 +164,31 @@ class _pgDetailScreenState extends State<pgDetailScreen> {
     List<Widget> list = <Widget>[];
     String strVol = "";
     String strAirDt = "";
+    String strAssetPath = "";
     for (Map item in mapPgDetailList) {
       strVol = item['vol'].toString();
       strAirDt = '${item['airDt'].toString().substring(0,4)}年${item['airDt'].toString().substring(4,6)}月${item['airDt'].toString().substring(6,8)}日';
+      switch (item['pgKind']) {
+        case cnsPgKindTV:
+          strAssetPath = 'assets/no.png';
+          break;
+        case cnsPgKindMV:
+          strAssetPath = 'assets/mv.png';
+          break;
+        case cnsPgKindVS:
+          strAssetPath = 'assets/vs.png';
+          break;
+        case cnsPgKindOTHERS:
+          strAssetPath = 'assets/other.png';
+          break;
+        default:
+        // 上記のいずれのケースにも該当しない場合の処理
+      }
+
+      debugPrint('strAssetPath:$strAssetPath');
       list.add(
         Card(
           color: Colors.black,
-        //  margin: const EdgeInsets.fromLTRB(15, 0, 15, 15),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(15),
           ),
@@ -129,10 +198,11 @@ class _pgDetailScreenState extends State<pgDetailScreen> {
                 Row(
                   children: <Widget>[
                     Text(strAirDt.toString(), style: const TextStyle(fontSize: 15.0, color: Colors.white,),),
-                    ImageIcon(
-                      AssetImage('assets/mv.png'),
-                      size: 15,  // アイコンのサイズを調整します
-                      color: Colors.blue,  // アイコンの色を指定します（省略可能）
+               //  ImageIcon(AssetImage(strAssetPath), size: 18 ,color: Colors.white),
+                    Image.asset(
+                      strAssetPath,
+                      width: 15,
+                      height: 15,
                     ),
                     Text(pgName.toString(), style: const TextStyle(fontSize: 18.0, color: Colors.white,),),
                     Text(strVol.toString(), style: const TextStyle(fontSize: 18.0, color: Colors.white,),),
@@ -205,6 +275,15 @@ class _pgDetailScreenState extends State<pgDetailScreen> {
     await getItems();
   }
   /*------------------------------------------------------------------
+期間中、他の作品も表示する
+ -------------------------------------------------------------------*/
+  Future<void> chgPgOtherDetail() async {
+    pg_otherFlg = !pg_otherFlg;
+    await updSettingGengoPgkind();
+    await getPgDetail();
+    await getItems();
+  }
+  /*------------------------------------------------------------------
 設定テーブルに更新
  -------------------------------------------------------------------*/
   Future<void> updSettingGengoPgkind() async {
@@ -220,18 +299,23 @@ class _pgDetailScreenState extends State<pgDetailScreen> {
     int movie = 0;
     int vshine = 0;
     int other = 0;
-
+    int pg_other = 0;
+    //元号
     showa = gengoShowaFlg?BtFlgOn:BtFlgOff;
     heisei = gengoHeiseiFlg?BtFlgOn:BtFlgOff;
     reiwa = gengoReiwaFlg?BtFlgOn:BtFlgOff;
 
+    //放送種類
     tv = pgKindTVFlg?BtFlgOn:BtFlgOff;
     movie = pgKindMVFlg?BtFlgOn:BtFlgOff;
     vshine = pgKindVSFlg?BtFlgOn:BtFlgOff;
     other = pgKindOTHERFlg?BtFlgOn:BtFlgOff;
 
+    //放送期間外でも作品を表示する
+    pg_other = pg_otherFlg?BtFlgOn:BtFlgOff;
+
     query =
-    'UPDATE setting set showa = $showa ,heisei = $heisei ,reiwa = $reiwa ,tv = $tv ,movie = $movie ,vshine = $vshine ,other = $other  ';
+    'UPDATE setting set showa = $showa ,heisei = $heisei ,reiwa = $reiwa ,tv = $tv ,movie = $movie ,vshine = $vshine ,other = $other ,pg_other = $pg_other ';
     await database.transaction((txn) async {
       await txn.rawInsert(query);
     });

@@ -331,16 +331,6 @@ class _MainScreenState extends State<MainScreen> {
     await loadList();
     await getItems();
   }
-  /*------------------------------------------------------------------
-pgMasterからロード
- -------------------------------------------------------------------*/
-  Future<void> loadSelGengoList() async {
-    String dbPath = await getDatabasesPath();
-    String path = p.join(dbPath, 'internal_assets.db');
-    Database database = await openDatabase(path, version: 1);
-    mapPgList = await database.rawQuery("SELECT * From pgMaster order by pgNo");
-  }
-
 
   /*------------------------------------------------------------------
 初期処理
@@ -368,6 +358,7 @@ pgMasterからロード
        pgKindMVFlg = (item['movie'] == 1)?true:false;
        pgKindVSFlg = (item['vshine'] == 1)?true:false;
        pgKindOTHERFlg = (item['other'] == 1)?true:false;
+       pg_otherFlg = (item['pg_other'] == 1)?true:false;
 
        debugPrint('syncdt: ${item['syncdt']} showa:${item['showa']} heisei:${item['heisei']} reiwa:${item['reiwa']} tv:${item['tv']} movie:${item['movie']} vshine:${item['vshine']} other:${item['other']}');
     }
@@ -484,7 +475,7 @@ ListViewを作成する
             // tileColor: const Color(0xFFF5F5DC),
             onTap: () {
               //albumNo = item['albumNo'];
-              _tapTile(item['pgNo'], item['pgName'].toString());
+              _tapTile(item['pgNo'], item['pgName'].toString(),item['airDtSt'],item['airDtEnd']);
             },
           ),
         ),
@@ -495,11 +486,11 @@ ListViewを作成する
     });
   }
 
-  void _tapTile(int pgNo, String pgName) async {
+  void _tapTile(int pgNo, String pgName,int airDtSt,int airDtEnd) async {
         Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => pgDetailScreen(pgNo,pgName),
+              builder: (context) => pgDetailScreen(pgNo,pgName,airDtSt,airDtEnd),
             ));
   }
 }
