@@ -187,20 +187,18 @@ class _pgDetailScreenState extends State<pgDetailScreen> {
 
       list.add(
         Card(
+          margin: EdgeInsets.fromLTRB(0, 0, 0, 0),
           color: Colors.black,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(15),
-          ),
+         // shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15),),
           child: ListTile(
-            //leading: Icon(Icons.check,size: 10.0,color: chkFlg?Colors.green:Colors.black),
+
             title: Column(
               children: <Widget>[
                 Row(
                   children: <Widget>[
-                    Icon(Icons.check,size: 18.0,color: chkFlg?Colors.green:Colors.black ),
+                    Padding(padding: EdgeInsets.fromLTRB(0,0,5,0), child: Icon(Icons.check,size: 20.0,color: chkFlg?Colors.green:Colors.black ),),
                     Text(strAirDt.toString(), style: const TextStyle(fontSize: 10.0, color: Colors.white,),),
-               //  ImageIcon(AssetImage(strAssetPath), size: 18 ,color: Colors.white),
-                    Image.asset(strAssetPath, width: 15, height: 15,),
+                    Padding(padding: EdgeInsets.fromLTRB(3,0,3,0), child: Image.asset(strAssetPath, width: 20, height: 20,),),
                     Text(strTitle.toString(), style: const TextStyle(fontSize: 18.0, color: Colors.white,),),
                     Text(strVol.toString(), style: const TextStyle(fontSize: 18.0, color: Colors.white,),),
                     ],

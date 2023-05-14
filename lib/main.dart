@@ -166,15 +166,12 @@ void main() async {
   //FireBaseのために実装
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
-
   await firstRun();
   await firstFireStoreDBIns();
   runApp(MyApp());
 }
-
 class MyApp extends StatelessWidget {
   MyApp({super.key});
-
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
@@ -186,21 +183,17 @@ class MyApp extends StatelessWidget {
     );
   }
 }
-
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
-
   @override
   State<MainScreen> createState() => _MainScreenState();
 }
-
 class _MainScreenState extends State<MainScreen> {
   @override
   void initState() {
     super.initState();
     init();
   }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -244,6 +237,12 @@ class _MainScreenState extends State<MainScreen> {
                 child: ListView(
                   children: itemsPgList,
                 )),
+            Divider(color: Colors.white, thickness: 2,),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: <Widget>[
+            ElevatedButton(onPressed: ()async{}, style: ElevatedButton.styleFrom(backgroundColor:  Colors.red ), child: Text('最新情報と同期'),),
+          ],),
           ],
         ),
       ),
@@ -279,13 +278,8 @@ class _MainScreenState extends State<MainScreen> {
     String path = p.join(dbPath, 'internal_assets.db');
     Database database = await openDatabase(path, version: 1);
 
-    int showa = 0;
-    int heisei = 0;
-    int reiwa = 0;
-    int tv = 0;
-    int movie = 0;
-    int vshine = 0;
-    int other = 0;
+    int showa = 0;int heisei = 0;int reiwa = 0;
+    int tv = 0;int movie = 0;int vshine = 0;int other = 0;
 
     showa = gengoShowaFlg?BtFlgOn:BtFlgOff;
     heisei = gengoHeiseiFlg?BtFlgOn:BtFlgOff;
@@ -301,8 +295,6 @@ class _MainScreenState extends State<MainScreen> {
     await database.transaction((txn) async {
       await txn.rawInsert(query);
     });
-
-
   }
   /*------------------------------------------------------------------
 放映種類変更
@@ -328,7 +320,6 @@ class _MainScreenState extends State<MainScreen> {
     await loadList();
     await getItems();
   }
-
   /*------------------------------------------------------------------
 初期処理
  -------------------------------------------------------------------*/
@@ -456,7 +447,7 @@ ListViewを作成する
       list.add(
         Card(
           color: Colors.black26,
-        //  margin: const EdgeInsets.fromLTRB(15, 0, 15, 15),
+          margin: EdgeInsets.fromLTRB(0, 0, 0, 0),
           shape: RoundedRectangleBorder(
           //  borderRadius: BorderRadius.circular(15),
           //  side: BorderSide(color: Colors.purple, width: 1), // 枠線の色を設定
