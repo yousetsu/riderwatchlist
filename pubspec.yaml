@@ -39,3 +39,7 @@ flutter:
     - assets/vs.png
     - assets/vs.jpg
     - assets/other.png
+  fonts:
+    - family: Kosugi
+      fonts:
+        - asset: assets/fonts/Kosugi-Regular.ttf

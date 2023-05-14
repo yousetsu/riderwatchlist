@@ -137,14 +137,14 @@ Future<void> volMasterINS() async {
   for (final snapshot in queryDocSnapshot) {
     final data = snapshot.data(); // `data()`で中身を取り出す
     debugPrint("airDt:${data['airDt']}");
-    insvolMaster(data['pgNo'], data['pgKind'], data['vol'], data['airDt']);
+    insvolMaster(data['pgNo'], data['vol'],data['pgKind'], data['airDt'], data['volNm'].toString());
   }
 }
 
 /*------------------------------------------------------------------
 pgMaster登録
  -------------------------------------------------------------------*/
-Future<void> insvolMaster(int pgNo, int pgKind, int vol, int airDt) async {
+Future<void> insvolMaster(int pgNo, int vol, int pgKind, int airDt, String volNm) async {
   String dbPath = await getDatabasesPath();
   String query = '';
   String path = p.join(dbPath, 'internal_assets.db');
@@ -153,7 +153,7 @@ Future<void> insvolMaster(int pgNo, int pgKind, int vol, int airDt) async {
     version: 1,
   );
   query =
-  'INSERT INTO volMaster(pgNo,pgKind,vol,airDt,airDt_mvEnd,volNm,kaku1,kaku2,kaku3,kaku4) values($pgNo,$pgKind,$vol,$airDt,null,null,null,null,null,null) ';
+  'INSERT INTO volMaster(pgNo,vol,pgKind,airDt,airDt_mvEnd,volNm,kaku1,kaku2,kaku3,kaku4) values($pgNo,$vol,$pgKind,$airDt,null,"$volNm",null,null,null,null) ';
   await database.transaction((txn) async {
     await txn.rawInsert(query);
   });
@@ -180,6 +180,9 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       home: const MainScreen(),
+      theme: ThemeData(
+        fontFamily: 'Kosugi',
+      ),
     );
   }
 }
@@ -203,13 +206,7 @@ class _MainScreenState extends State<MainScreen> {
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,
-        title: Text(
-          "仮面ライダー番組一覧",
-          style: const TextStyle(
-            fontSize: 30.0,
-            color: Colors.white,
-          ),
-        ),
+        title: Text("仮面ライダー作品一覧", style: const TextStyle(fontSize: 30.0, color: Colors.white,),),
         backgroundColor: Colors.black,
       ),
       body: Container(
@@ -240,7 +237,7 @@ class _MainScreenState extends State<MainScreen> {
             ElevatedButton(onPressed: ()async{changepgKindPgList(cnsPgKindOTHERS);}, style: ElevatedButton.styleFrom(backgroundColor: pgKindOTHERFlg ? Colors.orange : Colors.black,), child: Text('その他'),),
           ],),
             Divider(color: Colors.white, thickness: 2,),
-            Text("　　　公開日　　　番組名",
+            Text("　　放映期間　　　作品名",
               style: const TextStyle(fontSize: 15.0, color: Colors.white,),),
 
             Expanded(
@@ -401,7 +398,6 @@ pgMasterからロード
     }else{
       strWheregengo = '(0)';
     }
-
     //放送種類条件編集
     Continue = false;
     if(pgKindTVFlg) {
@@ -450,11 +446,13 @@ ListViewを作成する
   Future<void> getItems() async {
     List<Widget> list = <Widget>[];
     int albumNo = 0;
-    String strAirDt = "";
+    String strAirDtSt = "";
+    String strAirDtEnd = "";
     //Divider(color: Colors.white, thickness: 1),
 
     for (Map item in mapPgList) {
-       strAirDt = '${item['airDtSt'].toString().substring(0,4)}年${item['airDtSt'].toString().substring(4,6)}月${item['airDtSt'].toString().substring(6,8)}日 ';
+       strAirDtSt = '${item['airDtSt'].toString().substring(0,4)}年${item['airDtSt'].toString().substring(4,6)}月${item['airDtSt'].toString().substring(6,8)}日～';
+       strAirDtEnd = '${item['airDtEnd'].toString().substring(0,4)}年${item['airDtEnd'].toString().substring(4,6)}月${item['airDtEnd'].toString().substring(6,8)}日 ';
       list.add(
         Card(
           color: Colors.black26,
@@ -467,8 +465,14 @@ ListViewを作成する
             title:
             Row(
               children: <Widget>[
-                Text('$strAirDt', style: TextStyle(color: Colors.white, fontSize: 12),),
-                Text('   ${item['pgName']}', style: TextStyle(color: Colors.white, fontSize: 20),),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text('$strAirDtSt', style: TextStyle(color: Colors.white, fontSize: 11),),
+                    Text('$strAirDtEnd', style: TextStyle(color: Colors.white, fontSize: 11),),
+               ],
+                ),
+            Text('   ${item['pgName']}', style: TextStyle(color: Colors.white, fontSize: 20),),
               ],
             ),
             selected: albumNo == item['pgNo'],

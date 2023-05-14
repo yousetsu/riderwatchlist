@@ -6,7 +6,6 @@ import './global.dart';
 import './const.dart';
 List<Widget> pgDetailList = <Widget>[];
 
-
 class pgDetailScreen extends StatefulWidget {
   int pgNo;
   String pgName;
@@ -38,18 +37,9 @@ class _pgDetailScreenState extends State<pgDetailScreen> {
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,
-        title: Text(
-          pgName,
-          style: const TextStyle(
-            fontSize: 35.0,
-            color: Colors.white,
-          ),
-        ),
+        title: Text(pgName, style: const TextStyle(fontSize: 35.0, color: Colors.white,),),
         backgroundColor: Colors.black,
-        // AppBarの背景色を透明にする
         elevation: 0,
-        // 影を無効にする
-       // brightness: Brightness.light,
         // ステータスバーのテキスト色を明るくする
         iconTheme: IconThemeData(color: Colors.white),
       ),
@@ -79,7 +69,7 @@ class _pgDetailScreenState extends State<pgDetailScreen> {
             ElevatedButton(onPressed: ()async{chgPgOtherDetail();}, style: ElevatedButton.styleFrom(backgroundColor: pg_otherFlg ? Colors.green : Colors.black,), child: Text('放映期間中、他の作品も表示する'),),
           ],),
             Divider(color: Colors.white, thickness: 2,),
-            Text("　　　公開日　　　作品名　　話数",
+            Text("　　　　公開日　　　　作品名・話数",
               style: const TextStyle(fontSize: 15.0, color: Colors.white,),),
 
             Expanded(
@@ -153,7 +143,7 @@ class _pgDetailScreenState extends State<pgDetailScreen> {
           "SELECT * From volMaster where pgNo = $pgNo and pgKind in $strWherePgKind order by vol");
     }else{
       mapPgDetailList = await database.rawQuery(
-          "SELECT * From volMaster where pgKind in $strWherePgKind and airDt >= $airDtSt and airDt <= $airDtEnd order by vol");
+          "SELECT * From volMaster where pgKind in $strWherePgKind and airDt >= $airDtSt and airDt <= $airDtEnd order by airDt");
     }
 
   }
@@ -162,11 +152,20 @@ class _pgDetailScreenState extends State<pgDetailScreen> {
  -------------------------------------------------------------------*/
   Future<void> getItems() async {
     List<Widget> list = <Widget>[];
+    String strTitle = "";
     String strVol = "";
     String strAirDt = "";
     String strAssetPath = "";
+    bool chkFlg = false;
     for (Map item in mapPgDetailList) {
-      strVol = item['vol'].toString();
+
+      if(item['pgKind'] == cnsPgKindTV) {
+        strTitle = pgName.toString();
+        strVol = ' #${item['vol'].toString()}';
+      }else{
+        strTitle = item['volNm'].toString();
+        strVol = "";
+      }
       strAirDt = '${item['airDt'].toString().substring(0,4)}年${item['airDt'].toString().substring(4,6)}月${item['airDt'].toString().substring(6,8)}日';
       switch (item['pgKind']) {
         case cnsPgKindTV:
@@ -184,8 +183,8 @@ class _pgDetailScreenState extends State<pgDetailScreen> {
         default:
         // 上記のいずれのケースにも該当しない場合の処理
       }
+      chkFlg = await chkRireki(item['pgNo'], item['vol']);
 
-      debugPrint('strAssetPath:$strAssetPath');
       list.add(
         Card(
           color: Colors.black,
@@ -193,46 +192,27 @@ class _pgDetailScreenState extends State<pgDetailScreen> {
             borderRadius: BorderRadius.circular(15),
           ),
           child: ListTile(
+            //leading: Icon(Icons.check,size: 10.0,color: chkFlg?Colors.green:Colors.black),
             title: Column(
               children: <Widget>[
                 Row(
                   children: <Widget>[
-                    Text(strAirDt.toString(), style: const TextStyle(fontSize: 15.0, color: Colors.white,),),
+                    Icon(Icons.check,size: 18.0,color: chkFlg?Colors.green:Colors.black ),
+                    Text(strAirDt.toString(), style: const TextStyle(fontSize: 10.0, color: Colors.white,),),
                //  ImageIcon(AssetImage(strAssetPath), size: 18 ,color: Colors.white),
-                    Image.asset(
-                      strAssetPath,
-                      width: 15,
-                      height: 15,
-                    ),
-                    Text(pgName.toString(), style: const TextStyle(fontSize: 18.0, color: Colors.white,),),
+                    Image.asset(strAssetPath, width: 15, height: 15,),
+                    Text(strTitle.toString(), style: const TextStyle(fontSize: 18.0, color: Colors.white,),),
                     Text(strVol.toString(), style: const TextStyle(fontSize: 18.0, color: Colors.white,),),
                     ],
                 ),
               ],
             ),
-            // selected: photoNo == item['photoNo'],
-            // // tileColor: const Color(0xFFF5F5DC),
-            // onTap: () {
-            //   _tapTile(item['albumNo'], item['photoNo'],
-            //       item['photoLocation'].toString());
-            // },
-            // trailing: PopupMenuButton(
-            //   itemBuilder: (context) {
-            //     return lists.map((String list) {
-            //       return PopupMenuItem(
-            //         value: list,
-            //         child: Text(list),
-            //       );
-            //     }).toList();
-            //   },
-            //   onSelected: (String list) {
-            //     switch (list) {
-            //       case '除外':
-            //         ejectPhoto(item['albumNo'], item['photoNo']);
-            //         break;
-            //     }
-            //   },
-            // ),
+          //  selected: vol == item['vol'],
+            // tileColor: const Color(0xFFF5F5DC),
+            onTap: () {
+              _tapTile(item['pgNo'], item['vol']);
+            },
+
           ),
         ),
       );
@@ -241,15 +221,72 @@ class _pgDetailScreenState extends State<pgDetailScreen> {
       pgDetailList = list;
     });
   }
+  /*------------------------------------------------------------------
+タップ時の動作
+ -------------------------------------------------------------------*/
+  Future<bool> chkRireki(int pgNo, int vol) async{
+    bool chkFlg = false;
+    String dbPath = await getDatabasesPath();
+    String path = p.join(dbPath, 'internal_assets.db');
+    Database database = await openDatabase(path, version: 1);
+    List<Map> mapRireki = await database.rawQuery("SELECT 1 From rireki where pgNo = $pgNo and vol = $vol");
+    for (Map item in mapRireki) {
+      setState(() {
+        chkFlg = true;
+      });
+    }
+    return chkFlg;
+  }
+  /*------------------------------------------------------------------
+タップ時の動作
+ -------------------------------------------------------------------*/
+  Future<void>  _tapTile(int pgNo, int vol) async {
+    debugPrint("pgNo:$pgNo  vol:$vol");
+    bool chkFlg = false;
+    chkFlg = await chkRireki(pgNo, vol);
 
-  // void _tapTile(int albumNo, int photoNo, String filePath) async {
-  //   Navigator.push(
-  //       context,
-  //       MaterialPageRoute(
-  //         builder: (context) => SingleGalleryScreen(albumNo, photoNo, filePath),
-  //       ));
-  // }
-
+   if(!chkFlg) {
+     await rirekiIns(pgNo, vol);
+   }else{
+     await rirekiDel(pgNo, vol);
+   }
+    await getPgDetail();
+    await getItems();
+  }
+  /*------------------------------------------------------------------
+履歴テーブル挿入
+ -------------------------------------------------------------------*/
+  Future<void> rirekiIns( pgNo, vol) async{
+    String dbPath = await getDatabasesPath();
+    String query = '';
+    String path = p.join(dbPath, 'internal_assets.db');
+    Database database = await openDatabase(
+      path,
+      version: 1,
+    );
+    query =
+    'INSERT INTO rireki(pgNo,vol,kaku1,kaku2,kaku3,kaku4) values($pgNo,$vol,null,null,null,null) ';
+    await database.transaction((txn) async {
+      await txn.rawInsert(query);
+    });
+  }
+  /*------------------------------------------------------------------
+履歴テーブル削除
+ -------------------------------------------------------------------*/
+  Future<void> rirekiDel( pgNo, vol) async{
+    String dbPath = await getDatabasesPath();
+    String query = '';
+    String path = p.join(dbPath, 'internal_assets.db');
+    Database database = await openDatabase(
+      path,
+      version: 1,
+    );
+    query =
+    'Delete From rireki where pgNo = $pgNo and vol = $vol';
+    await database.transaction((txn) async {
+      await txn.rawInsert(query);
+    });
+  }
   /*------------------------------------------------------------------
 放映種類変更
  -------------------------------------------------------------------*/
@@ -292,14 +329,8 @@ class _pgDetailScreenState extends State<pgDetailScreen> {
     String path = p.join(dbPath, 'internal_assets.db');
     Database database = await openDatabase(path, version: 1);
 
-    int showa = 0;
-    int heisei = 0;
-    int reiwa = 0;
-    int tv = 0;
-    int movie = 0;
-    int vshine = 0;
-    int other = 0;
-    int pg_other = 0;
+    int showa = 0;int heisei = 0;int reiwa = 0;int tv = 0;
+    int movie = 0;int vshine = 0;int other = 0;int pg_other = 0;
     //元号
     showa = gengoShowaFlg?BtFlgOn:BtFlgOff;
     heisei = gengoHeiseiFlg?BtFlgOn:BtFlgOff;
