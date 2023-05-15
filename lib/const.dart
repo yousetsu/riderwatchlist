@@ -10,7 +10,7 @@ const int cnsPgKindOTHERS = 4;
 
 const int BtFlgOn = 1;
 const int BtFlgOff = 0;
-
+const int maxFailedLoadAttempts = 3;
 //広告ID
 //testID
 const String strCnsBannerID = 'ca-app-pub-3940256099942544/6300978111'; //Banner

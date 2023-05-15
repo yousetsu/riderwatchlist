@@ -9,7 +9,9 @@ import 'package:flutter/services.dart';
 import './const.dart';
 import './pgDetail.dart';
 import './global.dart';
-
+import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:fluttertoast/fluttertoast.dart';
+RewardedAd? _rewardedAd;
 List<Widget> itemsPgList = <Widget>[];
 /*------------------------------------------------------------------
 全共通のメソッド
@@ -47,12 +49,10 @@ Future<void> firstFireStoreDBIns() async {
   //PG Master
   await pgMasterDelete();
   await pgMasterINS();
-
   //volMaster
   await volMasterDelete();
   await volMasterINS();
 }
-
 /*------------------------------------------------------------------
 pgMasterDelete
  -------------------------------------------------------------------*/
@@ -87,7 +87,6 @@ Future<void> pgMasterINS() async {
         data['airDtSt'], data['airDtEnd'], data['gengo']);
   }
 }
-
 /*------------------------------------------------------------------
 pgMaster登録
  -------------------------------------------------------------------*/
@@ -189,6 +188,7 @@ class MainScreen extends StatefulWidget {
   State<MainScreen> createState() => _MainScreenState();
 }
 class _MainScreenState extends State<MainScreen> {
+  int _numRewardedLoadAttempts = 0;
   @override
   void initState() {
     super.initState();
@@ -241,12 +241,149 @@ class _MainScreenState extends State<MainScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            ElevatedButton(onPressed: ()async{}, style: ElevatedButton.styleFrom(backgroundColor:  Colors.red ), child: Text('最新情報と同期'),),
+            ElevatedButton(onPressed:()async{syncDB();}, style: ElevatedButton.styleFrom(backgroundColor:Colors.red ), child: Text('最新情報と同期'),),
           ],),
           ],
         ),
       ),
     );
+  }
+  /*------------------------------------------------------------------
+同期ボタン
+ -------------------------------------------------------------------*/
+  Future<void> syncDB() async {
+
+    bool syncFlg = false;
+    //最新チェック
+    syncFlg = await chkSync();
+    if(syncFlg) {
+      //最新がある旨のダイアログを出す
+
+      confirmMovieDialog();
+
+
+      //同期情報を更新
+
+    }else{
+
+    }
+  }
+
+  /*------------------------------------------------------------------
+動画確認ボタン
+ -------------------------------------------------------------------*/
+  Future<void> confirmMovieDialog() async {
+    final formKey = GlobalKey<FormState>();
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text('新しい情報に同期'),
+          content: SingleChildScrollView(
+            child: Form(
+              key: formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  Text("最新情報があります。更新しますか？(動画視聴1回で更新できます)"),
+
+                ],
+              ),
+            ),
+          ),
+          actions: <Widget>[
+            ElevatedButton(
+              child: Text('動画視聴して作成'),
+              onPressed: () async {
+                _showRewardedAd();
+                  await firstFireStoreDBIns();
+                  await loadList();
+                  await getItems();
+                  Fluttertoast.showToast(msg: '同期しました');
+                  Navigator.of(context).pop();
+              },
+            ),
+            ElevatedButton(
+                child: Text('取消'),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                }),
+          ],
+        );
+      },
+    );
+  }
+  /*------------------------------------------------------------------
+同期ボタン
+ -------------------------------------------------------------------*/
+  Future<bool> chkSync() async {
+    bool syncFlg = false;
+    int syncDtFirestore = 0;
+
+
+    //FireStoreから同時日時を取得
+    final collectionRef =
+    FirebaseFirestore.instance.collection('sync'); // DocumentReference
+    final querySnapshot = await collectionRef.get(); // QuerySnapshot
+    final queryDocSnapshot = querySnapshot.docs; // List<QueryDocumentSnapshot>
+    for (final snapshot in queryDocSnapshot) {
+      final data = snapshot.data(); // `data()`で中身を取り出す
+      syncDtFirestore = data['syncdt'];
+    }
+
+    if(syncDtLocal < syncDtFirestore)
+    {syncFlg = true;}
+
+    return syncFlg;
+  }
+
+  /*------------------------------------------------------------------
+動画準備
+ -------------------------------------------------------------------*/
+  void _createRewardedAd() {
+    RewardedAd.load(
+        adUnitId: strCnsRewardID,
+        request: const AdRequest(),
+        rewardedAdLoadCallback: RewardedAdLoadCallback(
+          onAdLoaded: (RewardedAd ad) {
+            print('$ad loaded.');
+            _rewardedAd = ad;
+            _numRewardedLoadAttempts = 0;
+          },
+          onAdFailedToLoad: (LoadAdError error) {
+            print('RewardedAd failed to load: $error');
+            _rewardedAd = null;
+            _numRewardedLoadAttempts += 1;
+            if (_numRewardedLoadAttempts < maxFailedLoadAttempts) {
+              _createRewardedAd();
+            }
+          },
+        ));
+  }
+  /*------------------------------------------------------------------
+動画実行
+ -------------------------------------------------------------------*/
+  void _showRewardedAd() async {
+    _rewardedAd!.fullScreenContentCallback = FullScreenContentCallback(
+      onAdShowedFullScreenContent: (RewardedAd ad) =>
+          print('ad onAdShowedFullScreenContent.'),
+      onAdDismissedFullScreenContent: (RewardedAd ad) {
+        print('$ad onAdDismissedFullScreenContent.');
+        ad.dispose();
+        _createRewardedAd();
+      },
+      onAdFailedToShowFullScreenContent: (RewardedAd ad, AdError error) {
+        print('$ad onAdFailedToShowFullScreenContent: $error');
+        ad.dispose();
+        _createRewardedAd();
+      },
+    );
+    _rewardedAd!.setImmersiveMode(true);
+    _rewardedAd!.show(
+        onUserEarnedReward: (AdWithoutView ad, RewardItem reward) {
+          print('$ad with reward $RewardItem(${reward.amount}, ${reward.type})');
+        });
+    _rewardedAd = null;
   }
   /*------------------------------------------------------------------
 元号変更
@@ -337,7 +474,7 @@ class _MainScreenState extends State<MainScreen> {
     Database database = await openDatabase(path, version: 1);
     mapSetting = await database.rawQuery("SELECT * From setting ");
     for (Map item in mapSetting) {
-       syncDt = item['syncdt'];
+       syncDtLocal = item['syncdt'];
        gengoShowaFlg = (item['showa'] == 1)?true:false;
        gengoHeiseiFlg = (item['heisei'] == 1)?true:false;
        gengoReiwaFlg = (item['reiwa'] == 1)?true:false;
