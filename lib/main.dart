@@ -11,6 +11,8 @@ import './pgDetail.dart';
 import './global.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+
+import 'firestoreUpd.dart';
 RewardedAd? _rewardedAd;
 List<Widget> itemsPgList = <Widget>[];
 /*------------------------------------------------------------------
@@ -23,6 +25,9 @@ Future<void> firstRun() async {
   String dbpath = await getDatabasesPath();
   //設定テーブル作成
   String path = p.join(dbpath, "internal_assets.db");
+  DateTime nowDt = new DateTime.now();
+  String strSyncDt = '';
+  int syncDt = 0;
   //設定テーブルがなければ、最初にassetsから作る
   var exists = await databaseExists(path);
   if (!exists) {
@@ -37,11 +42,34 @@ Future<void> firstRun() async {
     data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes);
     // Write and flush the bytes written
     await File(path).writeAsBytes(bytes, flush: true);
+    strSyncDt = '${nowDt.year}${nowDt.month.toString().padLeft(2,'0')}${nowDt.day.toString().padLeft(2,'0')}${nowDt.hour.toString().padLeft(2,'0')}${nowDt.minute.toString().padLeft(2,'0')}';
+    syncDt = int.parse(strSyncDt);
+    settingUpd(syncDt);
+    debugPrint('初回セットsyncDt: $syncDt');
+
+  //  await writeFireStoreVolMaster();
+  //  await writeFireStoreRiderMaster();
+    //FireBaseからデータを登録
+   // await firstFireStoreDBIns();
   } else {
     //print("Opening existing database");
   }
 }
+/*------------------------------------------------------------------
+設定テーブルに更新
+ -------------------------------------------------------------------*/
+Future<void> settingUpd(int syncDt) async {
+  String query = "";
+  String dbPath = await getDatabasesPath();
+  String path = p.join(dbPath, 'internal_assets.db');
+  Database database = await openDatabase(path, version: 1);
 
+  query =
+  'UPDATE setting set syncdt = $syncDt ';
+  await database.transaction((txn) async {
+    await txn.rawInsert(query);
+  });
+}
 /*------------------------------------------------------------------
 FireStore初回登録
  -------------------------------------------------------------------*/
@@ -84,14 +112,14 @@ Future<void> pgMasterINS() async {
     final data = snapshot.data(); // `data()`で中身を取り出す
     // debugPrint("pgname:${data['pgName']}");
     insPgMaster(data['pgNo'], data['pgName'].toString(), data['pgKind'],
-        data['airDtSt'], data['airDtEnd'], data['gengo']);
+        data['airDtSt'], data['airDtEnd'], data['gengo'], data['syncDt'], data['delFlg']);
   }
 }
 /*------------------------------------------------------------------
 pgMaster登録
  -------------------------------------------------------------------*/
 Future<void> insPgMaster(int pgNo, String pgName, int pgKind, int airDtSt,
-    int airDtEnd, int gengo) async {
+    int airDtEnd, int gengo,int syncDt,String delFlg) async {
   String dbPath = await getDatabasesPath();
   String query = '';
   String path = p.join(dbPath, 'internal_assets.db');
@@ -100,7 +128,7 @@ Future<void> insPgMaster(int pgNo, String pgName, int pgKind, int airDtSt,
     version: 1,
   );
   query =
-  'INSERT INTO pgMaster(pgNo,pgName,pgKind,airDtSt,airDtEnd,gengo,kaku1,kaku2,kaku3,kaku4) values($pgNo,"$pgName",$pgKind,$airDtSt,$airDtEnd,$gengo,null,null,null,null) ';
+  'INSERT INTO pgMaster(pgNo,pgName,pgKind,airDtSt,airDtEnd,gengo,kaku1,kaku2,kaku3,kaku4) values($pgNo,"$pgName",$pgKind,$airDtSt,$airDtEnd,$gengo,$syncDt,"$delFlg",null,null,null,null) ';
   await database.transaction((txn) async {
     await txn.rawInsert(query);
   });
@@ -136,14 +164,14 @@ Future<void> volMasterINS() async {
   for (final snapshot in queryDocSnapshot) {
     final data = snapshot.data(); // `data()`で中身を取り出す
     debugPrint("airDt:${data['airDt']}");
-    insvolMaster(data['pgNo'], data['vol'],data['pgKind'], data['airDt'], data['volNm'].toString());
+    insvolMaster(data['pgNo'], data['vol'],data['pgKind'], data['airDt'], data['volNm'].toString(), data['syncDt'], data['delFlg']);
   }
 }
 
 /*------------------------------------------------------------------
 pgMaster登録
  -------------------------------------------------------------------*/
-Future<void> insvolMaster(int pgNo, int vol, int pgKind, int airDt, String volNm) async {
+Future<void> insvolMaster(int pgNo, int vol, int pgKind, int airDt, String volNm,int syncDt, String delFlg) async {
   String dbPath = await getDatabasesPath();
   String query = '';
   String path = p.join(dbPath, 'internal_assets.db');
@@ -152,7 +180,7 @@ Future<void> insvolMaster(int pgNo, int vol, int pgKind, int airDt, String volNm
     version: 1,
   );
   query =
-  'INSERT INTO volMaster(pgNo,vol,pgKind,airDt,airDt_mvEnd,volNm,kaku1,kaku2,kaku3,kaku4) values($pgNo,$vol,$pgKind,$airDt,null,"$volNm",null,null,null,null) ';
+  'INSERT INTO volMaster(pgNo,vol,pgKind,airDt,airDt_mvEnd,volNm,syncDt,delFlg,kaku1,kaku2,kaku3,kaku4) values($pgNo,$vol,$pgKind,$airDt,null,"$volNm",$syncDt,"$delFlg",null,null,null,null) ';
   await database.transaction((txn) async {
     await txn.rawInsert(query);
   });
@@ -166,7 +194,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
   await firstRun();
-  await firstFireStoreDBIns();
+
   runApp(MyApp());
 }
 class MyApp extends StatelessWidget {
@@ -192,7 +220,10 @@ class _MainScreenState extends State<MainScreen> {
   @override
   void initState() {
     super.initState();
+
     init();
+
+    _createRewardedAd();
   }
   @override
   Widget build(BuildContext context) {
@@ -248,31 +279,51 @@ class _MainScreenState extends State<MainScreen> {
       ),
     );
   }
+
   /*------------------------------------------------------------------
 同期ボタン
  -------------------------------------------------------------------*/
   Future<void> syncDB() async {
+   int  syncDtFirestore = 0;
+   //settingテーブル再取得
 
-    bool syncFlg = false;
-    //最新チェック
-    syncFlg = await chkSync();
-    if(syncFlg) {
+   syncDtFirestore = await getSyncFireStore();
+   syncDtLocal = await getSettingSync();
+
+   debugPrint('syncDtFirestore: $syncDtFirestore');
+   debugPrint('syncDtLocal: $syncDtLocal');
+
+   //最新チェック
+   syncDtFirestore = await getSyncFireStore();
+    if(syncDtLocal < syncDtFirestore) {
       //最新がある旨のダイアログを出す
-
-      confirmMovieDialog();
-
-
-      //同期情報を更新
+      confirmMovieDialog(syncDtFirestore);
 
     }else{
-
+      //最新が無い旨のダイアログを出す
+      noSyncDialog();
     }
+  }
+
+  /*------------------------------------------------------------------
+設定テーブルからロード
+ -------------------------------------------------------------------*/
+  Future<int> getSettingSync() async {
+    int syncDtLocal = 0;
+    String dbPath = await getDatabasesPath();
+    String path = p.join(dbPath, 'internal_assets.db');
+    Database database = await openDatabase(path, version: 1);
+    mapSetting = await database.rawQuery("SELECT syncdt From setting ");
+    for (Map item in mapSetting) {
+      syncDtLocal = item['syncdt'];
+     }
+    return syncDtLocal;
   }
 
   /*------------------------------------------------------------------
 動画確認ボタン
  -------------------------------------------------------------------*/
-  Future<void> confirmMovieDialog() async {
+  Future<void> confirmMovieDialog(int syncDtFirestore) async {
     final formKey = GlobalKey<FormState>();
     showDialog(
       context: context,
@@ -286,25 +337,89 @@ class _MainScreenState extends State<MainScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: <Widget>[
                   Text("最新情報があります。更新しますか？(動画視聴1回で更新できます)"),
-
                 ],
               ),
             ),
           ),
           actions: <Widget>[
             ElevatedButton(
-              child: Text('動画視聴して作成'),
+              child: Text('動画視聴して同期'),
               onPressed: () async {
-                _showRewardedAd();
-                  await firstFireStoreDBIns();
-                  await loadList();
-                  await getItems();
-                  Fluttertoast.showToast(msg: '同期しました');
-                  Navigator.of(context).pop();
+                await _showRewardedAd();
+                await firstFireStoreDBIns();
+                await settingUpd(syncDtFirestore);
+                await loadList();
+                await getItems();
+            //    await syncComp();
+                Navigator.of(context).pop();
               },
             ),
             ElevatedButton(
-                child: Text('取消'),
+                child: Text('キャンセル'),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                }),
+          ],
+        );
+      },
+    );
+  }
+  /*------------------------------------------------------------------
+動画確認ボタン
+ -------------------------------------------------------------------*/
+  Future<void> noSyncDialog() async {
+    final formKey = GlobalKey<FormState>();
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text('確認結果'),
+          content: SingleChildScrollView(
+            child: Form(
+              key: formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  Text("最新情報はありませんでした。"),
+                ],
+              ),
+            ),
+          ),
+          actions: <Widget>[
+            ElevatedButton(
+                child: Text('OK'),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                }),
+          ],
+        );
+      },
+    );
+  }
+  /*------------------------------------------------------------------
+動画確認ボタン
+ -------------------------------------------------------------------*/
+  Future<void> syncComp() async {
+    final formKey = GlobalKey<FormState>();
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text('同期完了'),
+          content: SingleChildScrollView(
+            child: Form(
+              key: formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  Text("最新情報に更新しました。"),
+                ],
+              ),
+            ),
+          ),
+          actions: <Widget>[
+            ElevatedButton(
+                child: Text('OK'),
                 onPressed: () {
                   Navigator.of(context).pop();
                 }),
@@ -316,10 +431,8 @@ class _MainScreenState extends State<MainScreen> {
   /*------------------------------------------------------------------
 同期ボタン
  -------------------------------------------------------------------*/
-  Future<bool> chkSync() async {
-    bool syncFlg = false;
+  Future<int> getSyncFireStore() async {
     int syncDtFirestore = 0;
-
 
     //FireStoreから同時日時を取得
     final collectionRef =
@@ -331,10 +444,7 @@ class _MainScreenState extends State<MainScreen> {
       syncDtFirestore = data['syncdt'];
     }
 
-    if(syncDtLocal < syncDtFirestore)
-    {syncFlg = true;}
-
-    return syncFlg;
+    return syncDtFirestore;
   }
 
   /*------------------------------------------------------------------
@@ -363,7 +473,7 @@ class _MainScreenState extends State<MainScreen> {
   /*------------------------------------------------------------------
 動画実行
  -------------------------------------------------------------------*/
-  void _showRewardedAd() async {
+  Future<void> _showRewardedAd() async {
     _rewardedAd!.fullScreenContentCallback = FullScreenContentCallback(
       onAdShowedFullScreenContent: (RewardedAd ad) =>
           print('ad onAdShowedFullScreenContent.'),
@@ -565,7 +675,7 @@ pgMasterからロード
     debugPrint('strWheregengo:$strWheregengo');
     debugPrint('strWherePgKind:$strWherePgKind');
 
-    mapPgList = await database.rawQuery("SELECT * From pgMaster where gengo in $strWheregengo and pgKind in $strWherePgKind order by pgNo");
+    mapPgList = await database.rawQuery("SELECT * From pgMaster where gengo in $strWheregengo and pgKind in $strWherePgKind and delFlg IS NULL order by pgNo");
   }
 
   /*------------------------------------------------------------------
@@ -576,11 +686,20 @@ ListViewを作成する
     int albumNo = 0;
     String strAirDtSt = "";
     String strAirDtEnd = "";
+    double pgNameFont = 18;
     //Divider(color: Colors.white, thickness: 1),
 
     for (Map item in mapPgList) {
-       strAirDtSt = '${item['airDtSt'].toString().substring(0,4)}年${item['airDtSt'].toString().substring(4,6)}月${item['airDtSt'].toString().substring(6,8)}日～';
-       strAirDtEnd = '${item['airDtEnd'].toString().substring(0,4)}年${item['airDtEnd'].toString().substring(4,6)}月${item['airDtEnd'].toString().substring(6,8)}日 ';
+
+       strAirDtSt = await getDtFormat(item['airDtSt'].toString());
+       strAirDtEnd = await getDtFormat(item['airDtEnd'].toString());
+       if(item['pgName'].toString().length <= 10){
+         pgNameFont = 18;
+       }else{
+         pgNameFont = 14;
+       }
+
+
       list.add(
         Card(
           color: Colors.black26,
@@ -596,11 +715,11 @@ ListViewを作成する
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
-                    Text('$strAirDtSt', style: TextStyle(color: Colors.white, fontSize: 11),),
+                    Text('$strAirDtSt～', style: TextStyle(color: Colors.white, fontSize: 11),),
                     Text('$strAirDtEnd', style: TextStyle(color: Colors.white, fontSize: 11),),
                ],
                 ),
-            Text('   ${item['pgName']}', style: TextStyle(color: Colors.white, fontSize: 20),),
+            Text('   ${item['pgName']}', overflow: TextOverflow.clip ,maxLines: 2,style: TextStyle(color: Colors.white, fontSize: pgNameFont),),
               ],
             ),
             selected: albumNo == item['pgNo'],

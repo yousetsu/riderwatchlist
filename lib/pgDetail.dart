@@ -140,10 +140,10 @@ class _pgDetailScreenState extends State<pgDetailScreen> {
 
     if(pg_otherFlg == false) {
       mapPgDetailList = await database.rawQuery(
-          "SELECT * From volMaster where pgNo = $pgNo and pgKind in $strWherePgKind order by vol");
+          "SELECT * From volMaster where pgNo = $pgNo and pgKind in $strWherePgKind and delFlg IS NULL order by airDt");
     }else{
       mapPgDetailList = await database.rawQuery(
-          "SELECT * From volMaster where pgKind in $strWherePgKind and airDt >= $airDtSt and airDt <= $airDtEnd order by airDt");
+          "SELECT * From volMaster where pgKind in $strWherePgKind and airDt >= $airDtSt and airDt <= $airDtEnd and delFlg IS NULL' order by airDt");
     }
 
   }
@@ -157,6 +157,7 @@ class _pgDetailScreenState extends State<pgDetailScreen> {
     String strAirDt = "";
     String strAssetPath = "";
     bool chkFlg = false;
+    double titleFont = 0;
     for (Map item in mapPgDetailList) {
 
       if(item['pgKind'] == cnsPgKindTV) {
@@ -166,7 +167,12 @@ class _pgDetailScreenState extends State<pgDetailScreen> {
         strTitle = item['volNm'].toString();
         strVol = "";
       }
-      strAirDt = '${item['airDt'].toString().substring(0,4)}年${item['airDt'].toString().substring(4,6)}月${item['airDt'].toString().substring(6,8)}日';
+      if(strTitle.length <= 10){
+        titleFont = 18;
+      }else{
+        titleFont = 14;
+      }
+      strAirDt = await getDtFormat(item['airDt'].toString());
       switch (item['pgKind']) {
         case cnsPgKindTV:
           strAssetPath = 'assets/no.png';
@@ -199,7 +205,7 @@ class _pgDetailScreenState extends State<pgDetailScreen> {
                     Padding(padding: EdgeInsets.fromLTRB(0,0,5,0), child: Icon(Icons.check,size: 20.0,color: chkFlg?Colors.green:Colors.black ),),
                     Text(strAirDt.toString(), style: const TextStyle(fontSize: 10.0, color: Colors.white,),),
                     Padding(padding: EdgeInsets.fromLTRB(3,0,3,0), child: Image.asset(strAssetPath, width: 20, height: 20,),),
-                    Text(strTitle.toString(), style: const TextStyle(fontSize: 18.0, color: Colors.white,),),
+                    Text(strTitle.toString(), style:  TextStyle(fontSize: titleFont, color: Colors.white,),),
                     Text(strVol.toString(), style: const TextStyle(fontSize: 18.0, color: Colors.white,),),
                     ],
                 ),
@@ -227,7 +233,7 @@ class _pgDetailScreenState extends State<pgDetailScreen> {
     String dbPath = await getDatabasesPath();
     String path = p.join(dbPath, 'internal_assets.db');
     Database database = await openDatabase(path, version: 1);
-    List<Map> mapRireki = await database.rawQuery("SELECT 1 From rireki where pgNo = $pgNo and vol = $vol");
+    List<Map> mapRireki = await database.rawQuery("SELECT 1 From rireki where pgNo = $pgNo and vol = $vol " );
     for (Map item in mapRireki) {
       setState(() {
         chkFlg = true;
