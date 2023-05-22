@@ -73,27 +73,74 @@ Future<void> settingUpd(int syncDt) async {
 /*------------------------------------------------------------------
 FireStore初回登録
  -------------------------------------------------------------------*/
-Future<void> firstFireStoreDBIns() async {
-  //PG Master
-  await pgMasterDelete();
-  await pgMasterINS();
+Future<void> firstFireStoreDBUpd(int fireStoreSyncDt) async {
+  //PG MasterからSyncDtを基準に対象データ更新
+  await getSyncPgMaster(fireStoreSyncDt);
+
+
+
+
+
+}
+/*------------------------------------------------------------------
+PG MasterからSyncDtを基準に対象データを取得
+ -------------------------------------------------------------------*/
+Future<void> getSyncPgMaster(int fireStoreSyncDt) async{
+  debugPrint('FireStoreから同時日時を取得');
+  //FireStoreから同時日時を取得
+  final query =
+  FirebaseFirestore.instance.collection('riderMaster').where('syncDt',isGreaterThanOrEqualTo: fireStoreSyncDt); // DocumentReference
+  int intpgNo = 0;
+  bool updFlg = false;
+  final querySnapshot = await query.get(); // QuerySnapshot
+
   //volMaster
-  await volMasterDelete();
-  await volMasterINS();
+  // await volMasterDelete();
+  // await volMasterINS();
+  final queryDocSnapshot = querySnapshot.docs; // List<QueryDocumentSnapshot>
+  for (final snapshot in queryDocSnapshot) {
+    final data = snapshot.data(); // `data()`で中身を取り出す
+    intpgNo = data['pgNo'];
+    debugPrint('SyncDtを順に対象データ取得:${intpgNo.toString()}');
+    //対象データをSelect
+    updFlg = await pgMasterSelect(data['pgNo']);
+    //存在する場合、UPD
+    if(updFlg) {
+      pgMasterUpd(data['pgNo'],data['pgName'],data['gengo'],data['pgKind'],data['airDtSt'],data['airDtEnd'],data['syncDt'],data['delFlg']);
+    }else {
+      //存在しない場合、INS
+      pgMasterIns(data['pgNo'],data['pgName'],data['gengo'],data['pgKind'],data['airDtSt'],data['airDtEnd'],data['syncDt'],data['delFlg']);
+    }
+  }
+}
+/*------------------------------------------------------------------
+対象データをSelect
+ -------------------------------------------------------------------*/
+Future<bool> pgMasterSelect(int pgNo) async{
+  bool flg = false;
+  List<Map> mapPgMaster = <Map>[];
+  String dbPath = await getDatabasesPath();
+  String query = '';
+  String path = p.join(dbPath, 'internal_assets.db');
+  Database database = await openDatabase(path, version: 1,);
+
+  query = 'Select pgNo from pgMaster where pgNo = $pgNo';
+  mapPgMaster = await database.rawQuery(query);
+  for (Map item in mapPgMaster) {
+    flg = true;
+  }
+  return flg;
 }
 /*------------------------------------------------------------------
 pgMasterDelete
  -------------------------------------------------------------------*/
-Future<void> pgMasterDelete() async {
-  //PG MasterDrop
+Future<void> pgMasterUpd(int pgNo, String pgName, int gengo,int pgKind, int airDtSt, int airDtEnd, int syncDt,String delFlg) async {
   String dbPath = await getDatabasesPath();
   String query = '';
   String path = p.join(dbPath, 'internal_assets.db');
-  Database database = await openDatabase(
-    path,
-    version: 1,
-  );
-  query = 'Delete from pgMaster';
+  Database database = await openDatabase(path, version: 1,);
+  debugPrint('pgName更新:$pgName');
+  query = 'Update pgMaster set pgName = "$pgName",gengo = $gengo,pgKind = $pgKind,airDtSt = $airDtSt,airDtEnd = $airDtEnd,syncDt = $syncDt,delFlg = "$delFlg" where pgNo = $pgNo';
   await database.transaction((txn) async {
     await txn.rawInsert(query);
   });
@@ -102,7 +149,7 @@ Future<void> pgMasterDelete() async {
 /*------------------------------------------------------------------
 pgMaster登録
  -------------------------------------------------------------------*/
-Future<void> pgMasterINS() async {
+Future<void> pgMasterIns(int pgNo, String pgName, int gengo,int pgKind, int airDtSt, int airDtEnd, int syncDt,String delFlg)  async {
   //PG Master登録
   final collectionRef =
   FirebaseFirestore.instance.collection('riderMaster'); // DocumentReference
@@ -111,8 +158,7 @@ Future<void> pgMasterINS() async {
   for (final snapshot in queryDocSnapshot) {
     final data = snapshot.data(); // `data()`で中身を取り出す
     // debugPrint("pgname:${data['pgName']}");
-    insPgMaster(data['pgNo'], data['pgName'].toString(), data['pgKind'],
-        data['airDtSt'], data['airDtEnd'], data['gengo'], data['syncDt'], data['delFlg']);
+    insPgMaster(data['pgNo'], data['pgName'].toString(), data['gengo'], data['pgKind'], data['airDtSt'], data['airDtEnd'], data['syncDt'], data['delFlg'].toString());
   }
 }
 /*------------------------------------------------------------------
@@ -222,7 +268,6 @@ class _MainScreenState extends State<MainScreen> {
     super.initState();
 
     init();
-
     _createRewardedAd();
   }
   @override
@@ -346,7 +391,7 @@ class _MainScreenState extends State<MainScreen> {
               child: Text('動画視聴して同期'),
               onPressed: () async {
                 await _showRewardedAd();
-                await firstFireStoreDBIns();
+                await firstFireStoreDBUpd(syncDtFirestore);
                 await settingUpd(syncDtFirestore);
                 await loadList();
                 await getItems();
@@ -690,7 +735,6 @@ ListViewを作成する
     //Divider(color: Colors.white, thickness: 1),
 
     for (Map item in mapPgList) {
-
        strAirDtSt = await getDtFormat(item['airDtSt'].toString());
        strAirDtEnd = await getDtFormat(item['airDtEnd'].toString());
        if(item['pgName'].toString().length <= 10){
@@ -698,8 +742,6 @@ ListViewを作成する
        }else{
          pgNameFont = 14;
        }
-
-
       list.add(
         Card(
           color: Colors.black26,

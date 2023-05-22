@@ -199,14 +199,19 @@ class _pgDetailScreenState extends State<pgDetailScreen> {
           child: ListTile(
 
             title: Column(
+
               children: <Widget>[
                 Row(
                   children: <Widget>[
                     Padding(padding: EdgeInsets.fromLTRB(0,0,5,0), child: Icon(Icons.check,size: 20.0,color: chkFlg?Colors.green:Colors.black ),),
                     Text(strAirDt.toString(), style: const TextStyle(fontSize: 10.0, color: Colors.white,),),
                     Padding(padding: EdgeInsets.fromLTRB(3,0,3,0), child: Image.asset(strAssetPath, width: 20, height: 20,),),
-                    Text(strTitle.toString(), style:  TextStyle(fontSize: titleFont, color: Colors.white,),),
-                    Text(strVol.toString(), style: const TextStyle(fontSize: 18.0, color: Colors.white,),),
+          Container(
+            height: 30.0,
+            width: 200.0,
+            child: Text('${strTitle.toString()} ${strVol.toString()}', maxLines: null, overflow: TextOverflow.visible,style:  TextStyle(fontSize: titleFont, color: Colors.white,),),
+          ),
+
                     ],
                 ),
               ],
