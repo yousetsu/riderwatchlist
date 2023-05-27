@@ -47,8 +47,6 @@ Future<void> firstRun() async {
     settingUpd(syncDt);
     debugPrint('初回セットsyncDt: $syncDt');
 
-  //  await writeFireStoreVolMaster();
-  //  await writeFireStoreRiderMaster();
     //FireBaseからデータを登録
    // await firstFireStoreDBIns();
   } else {
@@ -79,7 +77,7 @@ Future<void> firstFireStoreDBUpd(int fireStoreSyncDt) async {
 
 
 
-
+  await getSyncVolMaster(fireStoreSyncDt);
 
 }
 /*------------------------------------------------------------------
@@ -89,13 +87,12 @@ Future<void> getSyncPgMaster(int fireStoreSyncDt) async{
   debugPrint('FireStoreから同時日時を取得');
   //FireStoreから同時日時を取得
   final query =
-  FirebaseFirestore.instance.collection('riderMaster').where('syncDt',isGreaterThanOrEqualTo: fireStoreSyncDt); // DocumentReference
+  FirebaseFirestore.instance.collection('pgMaster').where('syncDt',isGreaterThanOrEqualTo: fireStoreSyncDt); // DocumentReference
   int intpgNo = 0;
   bool updFlg = false;
   final querySnapshot = await query.get(); // QuerySnapshot
 
   //volMaster
-  // await volMasterDelete();
   // await volMasterINS();
   final queryDocSnapshot = querySnapshot.docs; // List<QueryDocumentSnapshot>
   for (final snapshot in queryDocSnapshot) {
@@ -104,6 +101,7 @@ Future<void> getSyncPgMaster(int fireStoreSyncDt) async{
     debugPrint('SyncDtを順に対象データ取得:${intpgNo.toString()}');
     //対象データをSelect
     updFlg = await pgMasterSelect(data['pgNo']);
+    debugPrint('updFlg:$updFlg');
     //存在する場合、UPD
     if(updFlg) {
       pgMasterUpd(data['pgNo'],data['pgName'],data['gengo'],data['pgKind'],data['airDtSt'],data['airDtEnd'],data['syncDt'],data['delFlg']);
@@ -132,15 +130,15 @@ Future<bool> pgMasterSelect(int pgNo) async{
   return flg;
 }
 /*------------------------------------------------------------------
-pgMasterDelete
+pgMasterUpd
  -------------------------------------------------------------------*/
-Future<void> pgMasterUpd(int pgNo, String pgName, int gengo,int pgKind, int airDtSt, int airDtEnd, int syncDt,String delFlg) async {
+Future<void> pgMasterUpd(int pgNo, String pgName, int gengo,int pgKind, int airDtSt, int airDtEnd, int syncDt,int delFlg) async {
   String dbPath = await getDatabasesPath();
   String query = '';
   String path = p.join(dbPath, 'internal_assets.db');
   Database database = await openDatabase(path, version: 1,);
   debugPrint('pgName更新:$pgName');
-  query = 'Update pgMaster set pgName = "$pgName",gengo = $gengo,pgKind = $pgKind,airDtSt = $airDtSt,airDtEnd = $airDtEnd,syncDt = $syncDt,delFlg = "$delFlg" where pgNo = $pgNo';
+  query = 'Update pgMaster set pgName = "$pgName",gengo = $gengo,pgKind = $pgKind,airDtSt = $airDtSt,airDtEnd = $airDtEnd,syncDt = $syncDt,delFlg = $delFlg where pgNo = $pgNo';
   await database.transaction((txn) async {
     await txn.rawInsert(query);
   });
@@ -149,23 +147,7 @@ Future<void> pgMasterUpd(int pgNo, String pgName, int gengo,int pgKind, int airD
 /*------------------------------------------------------------------
 pgMaster登録
  -------------------------------------------------------------------*/
-Future<void> pgMasterIns(int pgNo, String pgName, int gengo,int pgKind, int airDtSt, int airDtEnd, int syncDt,String delFlg)  async {
-  //PG Master登録
-  final collectionRef =
-  FirebaseFirestore.instance.collection('riderMaster'); // DocumentReference
-  final querySnapshot = await collectionRef.get(); // QuerySnapshot
-  final queryDocSnapshot = querySnapshot.docs; // List<QueryDocumentSnapshot>
-  for (final snapshot in queryDocSnapshot) {
-    final data = snapshot.data(); // `data()`で中身を取り出す
-    // debugPrint("pgname:${data['pgName']}");
-    insPgMaster(data['pgNo'], data['pgName'].toString(), data['gengo'], data['pgKind'], data['airDtSt'], data['airDtEnd'], data['syncDt'], data['delFlg'].toString());
-  }
-}
-/*------------------------------------------------------------------
-pgMaster登録
- -------------------------------------------------------------------*/
-Future<void> insPgMaster(int pgNo, String pgName, int pgKind, int airDtSt,
-    int airDtEnd, int gengo,int syncDt,String delFlg) async {
+Future<void> pgMasterIns(int pgNo, String pgName, int gengo,int pgKind, int airDtSt, int airDtEnd, int syncDt,int delFlg)  async {
   String dbPath = await getDatabasesPath();
   String query = '';
   String path = p.join(dbPath, 'internal_assets.db');
@@ -174,50 +156,76 @@ Future<void> insPgMaster(int pgNo, String pgName, int pgKind, int airDtSt,
     version: 1,
   );
   query =
-  'INSERT INTO pgMaster(pgNo,pgName,pgKind,airDtSt,airDtEnd,gengo,kaku1,kaku2,kaku3,kaku4) values($pgNo,"$pgName",$pgKind,$airDtSt,$airDtEnd,$gengo,$syncDt,"$delFlg",null,null,null,null) ';
+  'INSERT INTO pgMaster(pgNo,pgName,gengo,pgKind,airDtSt,airDtEnd,syncDt,delFlg, kaku1,kaku2,kaku3,kaku4) values($pgNo,"$pgName",$gengo,$pgKind,$airDtSt,$airDtEnd,$syncDt,$delFlg,null,null,null,null) ';
   await database.transaction((txn) async {
     await txn.rawInsert(query);
   });
 }
-
 /*------------------------------------------------------------------
-volMasterDelete
+Vol MasterからSyncDtを基準に対象データを取得
  -------------------------------------------------------------------*/
-Future<void> volMasterDelete() async {
-  //PG MasterDrop
-  String dbPath = await getDatabasesPath();
-  String query = '';
-  String path = p.join(dbPath, 'internal_assets.db');
-  Database database = await openDatabase(
-    path,
-    version: 1,
-  );
-  query = 'Delete from volMaster';
-  await database.transaction((txn) async {
-    await txn.rawInsert(query);
-  });
-}
+Future<void> getSyncVolMaster(int fireStoreSyncDt) async{
+  debugPrint('volMaster:FireStoreから同時日時を取得');
+  //FireStoreから同時日時を取得
+  final query =
+  FirebaseFirestore.instance.collection('volMaster').where('syncDt',isGreaterThanOrEqualTo: fireStoreSyncDt); // DocumentReference
+  int intpgNo = 0;int intVol = 0;bool updFlg = false;
 
-/*------------------------------------------------------------------
-pgMaster登録
- -------------------------------------------------------------------*/
-Future<void> volMasterINS() async {
-  //PG Master登録
-  final collectionRef =
-  FirebaseFirestore.instance.collection('volMaster'); // DocumentReference
-  final querySnapshot = await collectionRef.get(); // QuerySnapshot
+  final querySnapshot = await query.get(); // QuerySnapshot
   final queryDocSnapshot = querySnapshot.docs; // List<QueryDocumentSnapshot>
   for (final snapshot in queryDocSnapshot) {
     final data = snapshot.data(); // `data()`で中身を取り出す
-    debugPrint("airDt:${data['airDt']}");
-    insvolMaster(data['pgNo'], data['vol'],data['pgKind'], data['airDt'], data['volNm'].toString(), data['syncDt'], data['delFlg']);
+    intpgNo = data['pgNo'];
+    intVol = data['vol'];
+
+    //対象データをSelect
+    updFlg = await volMasterSelect(intpgNo,intVol);
+    debugPrint('updFlg:$updFlg');
+    //存在する場合、UPD
+    if(updFlg) {
+      volMasterUpd(data['pgNo'],data['vol'],data['pgKind'],data['airDt'],data['airDt_mvEnd'],data['volNm'],data['syncDt'],data['delFlg']);
+    }else {
+      //存在しない場合、INS
+      volMasterIns(data['pgNo'],data['vol'],data['pgKind'],data['airDt'],data['airDt_mvEnd'],data['volNm'],data['syncDt'],data['delFlg']);
+    }
   }
+}
+/*------------------------------------------------------------------
+対象データをSelect
+ -------------------------------------------------------------------*/
+Future<bool> volMasterSelect(int pgNo,int vol) async{
+  bool flg = false;
+  List<Map> mapVolMaster = <Map>[];
+  String dbPath = await getDatabasesPath();
+  String query = '';
+  String path = p.join(dbPath, 'internal_assets.db');
+  Database database = await openDatabase(path, version: 1,);
+
+  query = 'Select pgNo , vol from volMaster where pgNo = $pgNo and vol = $vol';
+  mapVolMaster = await database.rawQuery(query);
+  for (Map item in mapVolMaster) {
+    flg = true;
+  }
+  return flg;
+}
+/*------------------------------------------------------------------
+pgMasterUpd
+ -------------------------------------------------------------------*/
+Future<void> volMasterUpd(int pgNo, int vol, int pgKind, int airDt, int airDt_mvEnd, String volNm ,int syncDt,int delFlg) async {
+  String dbPath = await getDatabasesPath();
+  String query = '';
+  String path = p.join(dbPath, 'internal_assets.db');
+  Database database = await openDatabase(path, version: 1,);
+  query = 'Update volMaster set pgKind = $pgKind,airDt = $airDt,pgKind = $pgKind,airDt = $airDt,airDt_mvEnd = $airDt_mvEnd,volNm = "$volNm" ,syncDt = $syncDt,delFlg = $delFlg where pgNo = $pgNo and vol = $vol';
+  await database.transaction((txn) async {
+    await txn.rawInsert(query);
+  });
 }
 
 /*------------------------------------------------------------------
 pgMaster登録
  -------------------------------------------------------------------*/
-Future<void> insvolMaster(int pgNo, int vol, int pgKind, int airDt, String volNm,int syncDt, String delFlg) async {
+Future<void> volMasterIns(int pgNo, int vol, int pgKind, int airDt, int airDt_mvEnd, String volNm ,int syncDt,int delFlg)   async {
   String dbPath = await getDatabasesPath();
   String query = '';
   String path = p.join(dbPath, 'internal_assets.db');
@@ -226,12 +234,11 @@ Future<void> insvolMaster(int pgNo, int vol, int pgKind, int airDt, String volNm
     version: 1,
   );
   query =
-  'INSERT INTO volMaster(pgNo,vol,pgKind,airDt,airDt_mvEnd,volNm,syncDt,delFlg,kaku1,kaku2,kaku3,kaku4) values($pgNo,$vol,$pgKind,$airDt,null,"$volNm",$syncDt,"$delFlg",null,null,null,null) ';
+  'INSERT INTO volMaster(pgNo,vol,pgKind,airDt,airDt_mvEnd,volNm,syncDt,delFlg, kaku1,kaku2,kaku3,kaku4) values($pgNo,$vol,$pgKind,$airDt,$airDt_mvEnd,"$volNm",$syncDt,$delFlg,null,null,null,null) ';
   await database.transaction((txn) async {
     await txn.rawInsert(query);
   });
 }
-
 /*------------------------------------------------------------------
 main開始
  -------------------------------------------------------------------*/
@@ -720,7 +727,7 @@ pgMasterからロード
     debugPrint('strWheregengo:$strWheregengo');
     debugPrint('strWherePgKind:$strWherePgKind');
 
-    mapPgList = await database.rawQuery("SELECT * From pgMaster where gengo in $strWheregengo and pgKind in $strWherePgKind and delFlg IS NULL order by pgNo");
+    mapPgList = await database.rawQuery("SELECT * From pgMaster where gengo in $strWheregengo and pgKind in $strWherePgKind and delFlg = 0 order by pgNo");
   }
 
   /*------------------------------------------------------------------

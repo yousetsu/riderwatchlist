@@ -98,10 +98,7 @@ class _pgDetailScreenState extends State<pgDetailScreen> {
     bool Continue = false;
     String dbPath = await getDatabasesPath();
     String path = p.join(dbPath, 'internal_assets.db');
-    Database database = await openDatabase(
-      path,
-      version: 1,
-    );
+    Database database = await openDatabase(path, version: 1,);
     //放送種類条件編集
     Continue = false;
     if(pgKindTVFlg) {
@@ -140,10 +137,10 @@ class _pgDetailScreenState extends State<pgDetailScreen> {
 
     if(pg_otherFlg == false) {
       mapPgDetailList = await database.rawQuery(
-          "SELECT * From volMaster where pgNo = $pgNo and pgKind in $strWherePgKind and delFlg IS NULL order by airDt");
+          "SELECT * From volMaster where pgNo = $pgNo and pgKind in $strWherePgKind and delFlg = 0 order by airDt");
     }else{
       mapPgDetailList = await database.rawQuery(
-          "SELECT * From volMaster where pgKind in $strWherePgKind and airDt >= $airDtSt and airDt <= $airDtEnd and delFlg IS NULL' order by airDt");
+          "SELECT * From volMaster where pgKind in $strWherePgKind and airDt >= $airDtSt and airDt <= $airDtEnd and delFlg = 0 order by airDt");
     }
 
   }
