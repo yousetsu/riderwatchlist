@@ -147,6 +147,18 @@ class _pgDetailScreenState extends State<pgDetailScreen> {
   /*------------------------------------------------------------------
 リスト作成
  -------------------------------------------------------------------*/
+  Future<String> editVol(double vol) async {
+    String strVol = '';
+    if (vol % 1 == 0) {
+      strVol =  '# ${vol.toInt().toString()}';
+    } else {
+      strVol ='# ${vol.toString()}';
+    }
+    return strVol;
+  }
+  /*------------------------------------------------------------------
+リスト作成
+ -------------------------------------------------------------------*/
   Future<void> getItems() async {
     List<Widget> list = <Widget>[];
     String strTitle = "";
@@ -159,7 +171,7 @@ class _pgDetailScreenState extends State<pgDetailScreen> {
 
       if(item['pgKind'] == cnsPgKindTV) {
         strTitle = pgName.toString();
-        strVol = ' #${item['vol'].toString()}';
+        strVol =    await editVol(item['vol']);
       }else{
         strTitle = item['volNm'].toString();
         strVol = "";
@@ -230,7 +242,7 @@ class _pgDetailScreenState extends State<pgDetailScreen> {
   /*------------------------------------------------------------------
 タップ時の動作
  -------------------------------------------------------------------*/
-  Future<bool> chkRireki(int pgNo, int vol) async{
+  Future<bool> chkRireki(int pgNo, double vol) async{
     bool chkFlg = false;
     String dbPath = await getDatabasesPath();
     String path = p.join(dbPath, 'internal_assets.db');
@@ -246,8 +258,8 @@ class _pgDetailScreenState extends State<pgDetailScreen> {
   /*------------------------------------------------------------------
 タップ時の動作
  -------------------------------------------------------------------*/
-  Future<void>  _tapTile(int pgNo, int vol) async {
-    debugPrint("pgNo:$pgNo  vol:$vol");
+  Future<void>  _tapTile(int pgNo, double vol) async {
+    debugPrint("pgNo:$pgNo  double:$vol");
     bool chkFlg = false;
     chkFlg = await chkRireki(pgNo, vol);
 
@@ -262,7 +274,7 @@ class _pgDetailScreenState extends State<pgDetailScreen> {
   /*------------------------------------------------------------------
 履歴テーブル挿入
  -------------------------------------------------------------------*/
-  Future<void> rirekiIns( pgNo, vol) async{
+  Future<void> rirekiIns( int pgNo, double vol) async{
     String dbPath = await getDatabasesPath();
     String query = '';
     String path = p.join(dbPath, 'internal_assets.db');
@@ -279,7 +291,7 @@ class _pgDetailScreenState extends State<pgDetailScreen> {
   /*------------------------------------------------------------------
 履歴テーブル削除
  -------------------------------------------------------------------*/
-  Future<void> rirekiDel( pgNo, vol) async{
+  Future<void> rirekiDel(int pgNo, double vol) async{
     String dbPath = await getDatabasesPath();
     String query = '';
     String path = p.join(dbPath, 'internal_assets.db');

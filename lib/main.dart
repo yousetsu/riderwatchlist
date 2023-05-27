@@ -75,8 +75,6 @@ Future<void> firstFireStoreDBUpd(int fireStoreSyncDt) async {
   //PG MasterからSyncDtを基準に対象データ更新
   await getSyncPgMaster(fireStoreSyncDt);
 
-
-
   await getSyncVolMaster(fireStoreSyncDt);
 
 }
@@ -169,17 +167,17 @@ Future<void> getSyncVolMaster(int fireStoreSyncDt) async{
   //FireStoreから同時日時を取得
   final query =
   FirebaseFirestore.instance.collection('volMaster').where('syncDt',isGreaterThanOrEqualTo: fireStoreSyncDt); // DocumentReference
-  int intpgNo = 0;int intVol = 0;bool updFlg = false;
+  int intpgNo = 0;double dbVol = 0;bool updFlg = false;
 
   final querySnapshot = await query.get(); // QuerySnapshot
   final queryDocSnapshot = querySnapshot.docs; // List<QueryDocumentSnapshot>
   for (final snapshot in queryDocSnapshot) {
     final data = snapshot.data(); // `data()`で中身を取り出す
     intpgNo = data['pgNo'];
-    intVol = data['vol'];
+    dbVol = data['vol'];
 
     //対象データをSelect
-    updFlg = await volMasterSelect(intpgNo,intVol);
+    updFlg = await volMasterSelect(intpgNo,dbVol);
     debugPrint('updFlg:$updFlg');
     //存在する場合、UPD
     if(updFlg) {
@@ -193,7 +191,7 @@ Future<void> getSyncVolMaster(int fireStoreSyncDt) async{
 /*------------------------------------------------------------------
 対象データをSelect
  -------------------------------------------------------------------*/
-Future<bool> volMasterSelect(int pgNo,int vol) async{
+Future<bool> volMasterSelect(int pgNo,double vol) async{
   bool flg = false;
   List<Map> mapVolMaster = <Map>[];
   String dbPath = await getDatabasesPath();
@@ -211,7 +209,7 @@ Future<bool> volMasterSelect(int pgNo,int vol) async{
 /*------------------------------------------------------------------
 pgMasterUpd
  -------------------------------------------------------------------*/
-Future<void> volMasterUpd(int pgNo, int vol, int pgKind, int airDt, int airDt_mvEnd, String volNm ,int syncDt,int delFlg) async {
+Future<void> volMasterUpd(int pgNo, double vol, int pgKind, int airDt, int airDt_mvEnd, String volNm ,int syncDt,int delFlg) async {
   String dbPath = await getDatabasesPath();
   String query = '';
   String path = p.join(dbPath, 'internal_assets.db');
@@ -225,7 +223,7 @@ Future<void> volMasterUpd(int pgNo, int vol, int pgKind, int airDt, int airDt_mv
 /*------------------------------------------------------------------
 pgMaster登録
  -------------------------------------------------------------------*/
-Future<void> volMasterIns(int pgNo, int vol, int pgKind, int airDt, int airDt_mvEnd, String volNm ,int syncDt,int delFlg)   async {
+Future<void> volMasterIns(int pgNo, double vol, int pgKind, int airDt, int airDt_mvEnd, String volNm ,int syncDt,int delFlg)   async {
   String dbPath = await getDatabasesPath();
   String query = '';
   String path = p.join(dbPath, 'internal_assets.db');
