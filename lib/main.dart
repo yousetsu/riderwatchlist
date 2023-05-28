@@ -74,9 +74,7 @@ FireStore初回登録
 Future<void> firstFireStoreDBUpd(int fireStoreSyncDt) async {
   //PG MasterからSyncDtを基準に対象データ更新
   await getSyncPgMaster(fireStoreSyncDt);
-
   await getSyncVolMaster(fireStoreSyncDt);
-
 }
 /*------------------------------------------------------------------
 PG MasterからSyncDtを基準に対象データを取得
@@ -250,7 +248,6 @@ void main() async {
 }
 class MyApp extends StatelessWidget {
   MyApp({super.key});
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -354,7 +351,6 @@ class _MainScreenState extends State<MainScreen> {
       noSyncDialog();
     }
   }
-
   /*------------------------------------------------------------------
 設定テーブルからロード
  -------------------------------------------------------------------*/
@@ -369,7 +365,6 @@ class _MainScreenState extends State<MainScreen> {
      }
     return syncDtLocal;
   }
-
   /*------------------------------------------------------------------
 動画確認ボタン
  -------------------------------------------------------------------*/
@@ -493,10 +488,8 @@ class _MainScreenState extends State<MainScreen> {
       final data = snapshot.data(); // `data()`で中身を取り出す
       syncDtFirestore = data['syncdt'];
     }
-
     return syncDtFirestore;
   }
-
   /*------------------------------------------------------------------
 動画準備
  -------------------------------------------------------------------*/
@@ -766,7 +759,15 @@ ListViewを作成する
                     Text('$strAirDtEnd', style: TextStyle(color: Colors.white, fontSize: 11),),
                ],
                 ),
-            Text('   ${item['pgName']}', overflow: TextOverflow.clip ,maxLines: 2,style: TextStyle(color: Colors.white, fontSize: pgNameFont),),
+            Align(
+              alignment: Alignment.centerLeft,
+              child:Row(
+                children: <Widget>[
+                  SizedBox(width: 15),
+                  Text('${item['pgName']}', overflow: TextOverflow.clip ,maxLines: 2,style: TextStyle(color: Colors.white, fontSize: pgNameFont),),
+                ],
+              )
+            ),
               ],
             ),
             selected: albumNo == item['pgNo'],
@@ -785,10 +786,10 @@ ListViewを作成する
   }
 
   void _tapTile(int pgNo, String pgName,int airDtSt,int airDtEnd) async {
-        Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => pgDetailScreen(pgNo,pgName,airDtSt,airDtEnd),
-            ));
+
+
+
+    Navigator.push(context, MaterialPageRoute(builder: (context) => pgDetailScreen(pgNo,pgName,airDtSt,airDtEnd),));
+
   }
 }

@@ -8,6 +8,7 @@ const int cnsPgKindMV = 2;
 const int cnsPgKindVS = 3;
 const int cnsPgKindOTHERS = 4;
 
+const String wherePgKindOTHERS = '4,5,6,7,8,9';
 const int BtFlgOn = 1;
 const int BtFlgOff = 0;
 const int maxFailedLoadAttempts = 3;

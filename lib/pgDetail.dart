@@ -24,9 +24,14 @@ class _pgDetailScreenState extends State<pgDetailScreen> {
   String pgName;
   int airDtSt;
   int airDtEnd;
+
   _pgDetailScreenState(this.pgNo, this.pgName, this.airDtSt, this.airDtEnd);
+
   //変数の宣言
   List<Map> mapPgDetailList = <Map>[];
+  String strAirDtSt = '';
+  String strAirDtEnd = '';
+
   @override
   void initState() {
     super.initState();
@@ -37,7 +42,14 @@ class _pgDetailScreenState extends State<pgDetailScreen> {
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,
-        title: Text(pgName, style: const TextStyle(fontSize: 35.0, color: Colors.white,),),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: <Widget>[
+            Text(pgName, style: const TextStyle(fontSize: 20.0, color: Colors.white,),),
+            SizedBox(height: 10),
+            Text('($strAirDtSt～$strAirDtEnd)', style: const TextStyle(fontSize: 13.0, color: Colors.white,),),
+          ],
+        ),
         backgroundColor: Colors.black,
         elevation: 0,
         // ステータスバーのテキスト色を明るくする
@@ -66,12 +78,11 @@ class _pgDetailScreenState extends State<pgDetailScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            ElevatedButton(onPressed: ()async{chgPgOtherDetail();}, style: ElevatedButton.styleFrom(backgroundColor: pg_otherFlg ? Colors.green : Colors.black,), child: Text('放映期間中、他の作品も表示する'),),
+            ElevatedButton(onPressed: ()async{chgPgOtherDetail();}, style: ElevatedButton.styleFrom(backgroundColor: pg_otherFlg ? Colors.green : Colors.grey,), child: Text('放映期間中、他ライダー作品の表示'),),
           ],),
             Divider(color: Colors.white, thickness: 2,),
             Text("　　　　公開日　　　　作品名・話数",
               style: const TextStyle(fontSize: 15.0, color: Colors.white,),),
-
             Expanded(
                 child: ListView(
                   children: pgDetailList,
@@ -87,6 +98,8 @@ class _pgDetailScreenState extends State<pgDetailScreen> {
   ロード処理
  -------------------------------------------------------------------*/
   Future<void> load() async {
+    strAirDtSt = await getDtFormat(airDtSt.toString());
+    strAirDtEnd = await getDtFormat(airDtEnd.toString());
     await getPgDetail();
     await getItems();
   }
@@ -123,9 +136,9 @@ class _pgDetailScreenState extends State<pgDetailScreen> {
     }
     if(pgKindOTHERFlg) {
       if (Continue) {
-        strWherePgKind = strWherePgKind + ',' + cnsPgKindOTHERS.toString();
+        strWherePgKind = strWherePgKind + ',' + wherePgKindOTHERS.toString();
       }else{
-        strWherePgKind = strWherePgKind + cnsPgKindOTHERS.toString();
+        strWherePgKind = strWherePgKind + wherePgKindOTHERS.toString();
       }
       Continue = true;
     }
@@ -134,27 +147,14 @@ class _pgDetailScreenState extends State<pgDetailScreen> {
     }else{
       strWherePgKind = '(0)';
     }
-
     if(pg_otherFlg == false) {
       mapPgDetailList = await database.rawQuery(
-          "SELECT * From volMaster where pgNo = $pgNo and pgKind in $strWherePgKind and delFlg = 0 order by airDt");
+          "SELECT A.pgNo , B.pgName ,A.vol ,A.pgKind ,A.airDt, A.volNm from volMaster A LEFT outer JOIN pgMaster B on A.pgNo = B.pgNo where A.pgNo = $pgNo and A.pgKind in $strWherePgKind and A.delFlg = 0 order by A.airDt");
     }else{
+      //放映期間中、他ライダー作品も表示する
       mapPgDetailList = await database.rawQuery(
-          "SELECT * From volMaster where pgKind in $strWherePgKind and airDt >= $airDtSt and airDt <= $airDtEnd and delFlg = 0 order by airDt");
+          "SELECT A.pgNo , B.pgName ,A.vol ,A.pgKind ,A.airDt , A.volNm from volMaster A LEFT outer JOIN pgMaster B on A.pgNo = B.pgNo where A.pgNo = $pgNo and A.pgKind in $strWherePgKind and A.delFlg = 0 UNION SELECT A.pgNo , B.pgName ,A.vol ,A.pgKind ,A.airDt , A.volNm from volMaster A LEFT outer JOIN pgMaster B on A.pgNo = B.pgNo where A.pgKind in $strWherePgKind and A.airDt >= $airDtSt and A.airDt <= $airDtEnd and A.delFlg = 0 order by A.airDt");
     }
-
-  }
-  /*------------------------------------------------------------------
-リスト作成
- -------------------------------------------------------------------*/
-  Future<String> editVol(double vol) async {
-    String strVol = '';
-    if (vol % 1 == 0) {
-      strVol =  '# ${vol.toInt().toString()}';
-    } else {
-      strVol ='# ${vol.toString()}';
-    }
-    return strVol;
   }
   /*------------------------------------------------------------------
 リスト作成
@@ -170,16 +170,18 @@ class _pgDetailScreenState extends State<pgDetailScreen> {
     for (Map item in mapPgDetailList) {
 
       if(item['pgKind'] == cnsPgKindTV) {
-        strTitle = pgName.toString();
-        strVol =    await editVol(item['vol']);
+        strTitle = item['pgName'].toString();
+        strVol = await editVol(item['vol']);
       }else{
         strTitle = item['volNm'].toString();
         strVol = "";
       }
       if(strTitle.length <= 10){
-        titleFont = 18;
+        titleFont = 16;
+      }else if (strTitle.length > 10 && strTitle.length <= 20){
+        titleFont = 13;
       }else{
-        titleFont = 14;
+        titleFont = 10;
       }
       strAirDt = await getDtFormat(item['airDt'].toString());
       switch (item['pgKind']) {
@@ -192,11 +194,9 @@ class _pgDetailScreenState extends State<pgDetailScreen> {
         case cnsPgKindVS:
           strAssetPath = 'assets/vs.png';
           break;
-        case cnsPgKindOTHERS:
-          strAssetPath = 'assets/other.png';
-          break;
         default:
-        // 上記のいずれのケースにも該当しない場合の処理
+           strAssetPath = 'assets/other.png';
+            break;
       }
       chkFlg = await chkRireki(item['pgNo'], item['vol']);
 
@@ -206,31 +206,24 @@ class _pgDetailScreenState extends State<pgDetailScreen> {
           color: Colors.black,
          // shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15),),
           child: ListTile(
-
             title: Column(
-
               children: <Widget>[
                 Row(
                   children: <Widget>[
                     Padding(padding: EdgeInsets.fromLTRB(0,0,5,0), child: Icon(Icons.check,size: 20.0,color: chkFlg?Colors.green:Colors.black ),),
                     Text(strAirDt.toString(), style: const TextStyle(fontSize: 10.0, color: Colors.white,),),
                     Padding(padding: EdgeInsets.fromLTRB(3,0,3,0), child: Image.asset(strAssetPath, width: 20, height: 20,),),
-          Container(
-            height: 30.0,
-            width: 200.0,
-            child: Text('${strTitle.toString()} ${strVol.toString()}', maxLines: null, overflow: TextOverflow.visible,style:  TextStyle(fontSize: titleFont, color: Colors.white,),),
-          ),
-
-                    ],
+                    Container(height: 30.0, width: 200.0,
+                      child:Align(
+                        alignment: Alignment.centerLeft,
+                        child:Text('${strTitle.toString()} ${strVol.toString()}', maxLines: null, overflow: TextOverflow.visible,style:  TextStyle(fontSize: titleFont, color: Colors.white,),),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
-          //  selected: vol == item['vol'],
-            // tileColor: const Color(0xFFF5F5DC),
-            onTap: () {
-              _tapTile(item['pgNo'], item['vol']);
-            },
-
+            onTap: () {_tapTile(item['pgNo'], item['vol']);},
           ),
         ),
       );
@@ -238,6 +231,18 @@ class _pgDetailScreenState extends State<pgDetailScreen> {
     setState(() {
       pgDetailList = list;
     });
+  }
+  /*------------------------------------------------------------------
+vol編集
+ -------------------------------------------------------------------*/
+  Future<String> editVol(double vol) async {
+    String strVol = '';
+    if (vol % 1 == 0) {
+      strVol =  '#${vol.toInt().toString()}';
+    } else {
+      strVol ='#${vol.toString()}';
+    }
+    return strVol;
   }
   /*------------------------------------------------------------------
 タップ時の動作
@@ -262,7 +267,6 @@ class _pgDetailScreenState extends State<pgDetailScreen> {
     debugPrint("pgNo:$pgNo  double:$vol");
     bool chkFlg = false;
     chkFlg = await chkRireki(pgNo, vol);
-
    if(!chkFlg) {
      await rirekiIns(pgNo, vol);
    }else{
@@ -278,10 +282,7 @@ class _pgDetailScreenState extends State<pgDetailScreen> {
     String dbPath = await getDatabasesPath();
     String query = '';
     String path = p.join(dbPath, 'internal_assets.db');
-    Database database = await openDatabase(
-      path,
-      version: 1,
-    );
+    Database database = await openDatabase(path, version: 1,);
     query =
     'INSERT INTO rireki(pgNo,vol,kaku1,kaku2,kaku3,kaku4) values($pgNo,$vol,null,null,null,null) ';
     await database.transaction((txn) async {
@@ -295,10 +296,7 @@ class _pgDetailScreenState extends State<pgDetailScreen> {
     String dbPath = await getDatabasesPath();
     String query = '';
     String path = p.join(dbPath, 'internal_assets.db');
-    Database database = await openDatabase(
-      path,
-      version: 1,
-    );
+    Database database = await openDatabase(path, version: 1,);
     query =
     'Delete From rireki where pgNo = $pgNo and vol = $vol';
     await database.transaction((txn) async {
@@ -333,7 +331,10 @@ class _pgDetailScreenState extends State<pgDetailScreen> {
 期間中、他の作品も表示する
  -------------------------------------------------------------------*/
   Future<void> chgPgOtherDetail() async {
-    pg_otherFlg = !pg_otherFlg;
+    setState(() {
+      pg_otherFlg = !pg_otherFlg;
+    });
+
     await updSettingGengoPgkind();
     await getPgDetail();
     await getItems();
