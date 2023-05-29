@@ -1,7 +1,5 @@
 List<Map> mapPgList = <Map>[];
 List<Map> mapSetting = <Map>[];
-
-
 int syncDtLocal = 0;
 bool gengoShowaFlg = true;
 bool gengoHeiseiFlg = true;
@@ -11,7 +9,6 @@ bool pgKindTVFlg = true;
 bool pgKindMVFlg = true;
 bool pgKindVSFlg = true;
 bool pgKindOTHERFlg = true;
-
 
 bool pg_otherFlg = false;
 /*------------------------------------------------------------------

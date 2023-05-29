@@ -149,11 +149,11 @@ class _pgDetailScreenState extends State<pgDetailScreen> {
     }
     if(pg_otherFlg == false) {
       mapPgDetailList = await database.rawQuery(
-          "SELECT A.pgNo , B.pgName ,A.vol ,A.pgKind ,A.airDt, A.volNm from volMaster A LEFT outer JOIN pgMaster B on A.pgNo = B.pgNo where A.pgNo = $pgNo and A.pgKind in $strWherePgKind and A.delFlg = 0 order by A.airDt");
+          "SELECT A.pgNo , B.pgName ,A.vol ,A.pgKind ,A.airDt, A.volNm from volMaster A LEFT outer JOIN pgMaster B on A.pgNo = B.pgNo where A.pgNo = $pgNo and A.pgKind in $strWherePgKind and A.delFlg = 0 order by A.airDt ,A.pgKind");
     }else{
       //放映期間中、他ライダー作品も表示する
       mapPgDetailList = await database.rawQuery(
-          "SELECT A.pgNo , B.pgName ,A.vol ,A.pgKind ,A.airDt , A.volNm from volMaster A LEFT outer JOIN pgMaster B on A.pgNo = B.pgNo where A.pgNo = $pgNo and A.pgKind in $strWherePgKind and A.delFlg = 0 UNION SELECT A.pgNo , B.pgName ,A.vol ,A.pgKind ,A.airDt , A.volNm from volMaster A LEFT outer JOIN pgMaster B on A.pgNo = B.pgNo where A.pgKind in $strWherePgKind and A.airDt >= $airDtSt and A.airDt <= $airDtEnd and A.delFlg = 0 order by A.airDt");
+          "SELECT A.pgNo , B.pgName ,A.vol ,A.pgKind ,A.airDt , A.volNm from volMaster A LEFT outer JOIN pgMaster B on A.pgNo = B.pgNo where A.pgNo = $pgNo and A.pgKind in $strWherePgKind and A.delFlg = 0 UNION SELECT A.pgNo , B.pgName ,A.vol ,A.pgKind ,A.airDt , A.volNm from volMaster A LEFT outer JOIN pgMaster B on A.pgNo = B.pgNo where A.pgKind in $strWherePgKind and A.airDt >= $airDtSt and A.airDt <= $airDtEnd and A.delFlg = 0 order by A.airDt ,A.pgKind");
     }
   }
   /*------------------------------------------------------------------
@@ -264,7 +264,6 @@ vol編集
 タップ時の動作
  -------------------------------------------------------------------*/
   Future<void>  _tapTile(int pgNo, double vol) async {
-    debugPrint("pgNo:$pgNo  double:$vol");
     bool chkFlg = false;
     chkFlg = await chkRireki(pgNo, vol);
    if(!chkFlg) {

@@ -10,9 +10,8 @@ import './const.dart';
 import './pgDetail.dart';
 import './global.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
-import 'package:fluttertoast/fluttertoast.dart';
 
-import 'firestoreUpd.dart';
+
 RewardedAd? _rewardedAd;
 List<Widget> itemsPgList = <Widget>[];
 /*------------------------------------------------------------------
@@ -45,7 +44,6 @@ Future<void> firstRun() async {
     strSyncDt = '${nowDt.year}${nowDt.month.toString().padLeft(2,'0')}${nowDt.day.toString().padLeft(2,'0')}${nowDt.hour.toString().padLeft(2,'0')}${nowDt.minute.toString().padLeft(2,'0')}';
     syncDt = int.parse(strSyncDt);
     settingUpd(syncDt);
-    debugPrint('初回セットsyncDt: $syncDt');
 
     //FireBaseからデータを登録
    // await firstFireStoreDBIns();
@@ -80,7 +78,6 @@ Future<void> firstFireStoreDBUpd(int fireStoreSyncDt) async {
 PG MasterからSyncDtを基準に対象データを取得
  -------------------------------------------------------------------*/
 Future<void> getSyncPgMaster(int fireStoreSyncDt) async{
-  debugPrint('FireStoreから同時日時を取得');
   //FireStoreから同時日時を取得
   final query =
   FirebaseFirestore.instance.collection('pgMaster').where('syncDt',isGreaterThanOrEqualTo: fireStoreSyncDt); // DocumentReference
@@ -94,10 +91,8 @@ Future<void> getSyncPgMaster(int fireStoreSyncDt) async{
   for (final snapshot in queryDocSnapshot) {
     final data = snapshot.data(); // `data()`で中身を取り出す
     intpgNo = data['pgNo'];
-    debugPrint('SyncDtを順に対象データ取得:${intpgNo.toString()}');
     //対象データをSelect
     updFlg = await pgMasterSelect(data['pgNo']);
-    debugPrint('updFlg:$updFlg');
     //存在する場合、UPD
     if(updFlg) {
       pgMasterUpd(data['pgNo'],data['pgName'],data['gengo'],data['pgKind'],data['airDtSt'],data['airDtEnd'],data['syncDt'],data['delFlg']);
@@ -133,7 +128,6 @@ Future<void> pgMasterUpd(int pgNo, String pgName, int gengo,int pgKind, int airD
   String query = '';
   String path = p.join(dbPath, 'internal_assets.db');
   Database database = await openDatabase(path, version: 1,);
-  debugPrint('pgName更新:$pgName');
   query = 'Update pgMaster set pgName = "$pgName",gengo = $gengo,pgKind = $pgKind,airDtSt = $airDtSt,airDtEnd = $airDtEnd,syncDt = $syncDt,delFlg = $delFlg where pgNo = $pgNo';
   await database.transaction((txn) async {
     await txn.rawInsert(query);
@@ -161,7 +155,6 @@ Future<void> pgMasterIns(int pgNo, String pgName, int gengo,int pgKind, int airD
 Vol MasterからSyncDtを基準に対象データを取得
  -------------------------------------------------------------------*/
 Future<void> getSyncVolMaster(int fireStoreSyncDt) async{
-  debugPrint('volMaster:FireStoreから同時日時を取得');
   //FireStoreから同時日時を取得
   final query =
   FirebaseFirestore.instance.collection('volMaster').where('syncDt',isGreaterThanOrEqualTo: fireStoreSyncDt); // DocumentReference
@@ -176,7 +169,6 @@ Future<void> getSyncVolMaster(int fireStoreSyncDt) async{
 
     //対象データをSelect
     updFlg = await volMasterSelect(intpgNo,dbVol);
-    debugPrint('updFlg:$updFlg');
     //存在する場合、UPD
     if(updFlg) {
       volMasterUpd(data['pgNo'],data['vol'],data['pgKind'],data['airDt'],data['airDt_mvEnd'],data['volNm'],data['syncDt'],data['delFlg']);
@@ -336,9 +328,6 @@ class _MainScreenState extends State<MainScreen> {
 
    syncDtFirestore = await getSyncFireStore();
    syncDtLocal = await getSettingSync();
-
-   debugPrint('syncDtFirestore: $syncDtFirestore');
-   debugPrint('syncDtLocal: $syncDtLocal');
 
    //最新チェック
    syncDtFirestore = await getSyncFireStore();
@@ -637,10 +626,7 @@ class _MainScreenState extends State<MainScreen> {
        pgKindVSFlg = (item['vshine'] == 1)?true:false;
        pgKindOTHERFlg = (item['other'] == 1)?true:false;
        pg_otherFlg = (item['pg_other'] == 1)?true:false;
-
-       debugPrint('syncdt: ${item['syncdt']} showa:${item['showa']} heisei:${item['heisei']} reiwa:${item['reiwa']} tv:${item['tv']} movie:${item['movie']} vshine:${item['vshine']} other:${item['other']}');
-    }
-
+     }
   }
   /*------------------------------------------------------------------
 pgMasterからロード
@@ -714,10 +700,6 @@ pgMasterからロード
     }else{
       strWherePgKind = '(0)';
     }
-
-    debugPrint('strWheregengo:$strWheregengo');
-    debugPrint('strWherePgKind:$strWherePgKind');
-
     mapPgList = await database.rawQuery("SELECT * From pgMaster where gengo in $strWheregengo and pgKind in $strWherePgKind and delFlg = 0 order by pgNo");
   }
 
