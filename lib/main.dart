@@ -11,7 +11,6 @@ import './pgDetail.dart';
 import './global.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
-
 RewardedAd? _rewardedAd;
 List<Widget> itemsPgList = <Widget>[];
 /*------------------------------------------------------------------
@@ -768,8 +767,6 @@ ListViewを作成する
   }
 
   void _tapTile(int pgNo, String pgName,int airDtSt,int airDtEnd) async {
-
-
 
     Navigator.push(context, MaterialPageRoute(builder: (context) => pgDetailScreen(pgNo,pgName,airDtSt,airDtEnd),));
 
