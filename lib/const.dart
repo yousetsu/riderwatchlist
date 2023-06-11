@@ -13,7 +13,15 @@ const int BtFlgOn = 1;
 const int BtFlgOff = 0;
 const int maxFailedLoadAttempts = 3;
 //広告ID
-//testID
-const String strCnsRewardID = 'ca-app-pub-3940256099942544/5224354917'; //Reward
+
+//test
+//const String strCnsRewardID = 'ca-app-pub-3940256099942544/5224354917'; //Reward
+//const String strCnsPgMaster = 'TESTpgMaster';
+//const String strCnsVolMaster = 'TESTvolMaster';
+//const String strCnsSync = 'TESTsync';
+
 //本番
-//const String strCnsRewardID = 'ca-app-pub-8759269867859745/9055361111'; //Reward
+ const String strCnsRewardID = 'ca-app-pub-8759269867859745/9055361111'; //Reward
+ const String strCnsPgMaster = 'pgMaster';
+ const String strCnsVolMaster = 'volMaster';
+ const String strCnsSync = 'sync';

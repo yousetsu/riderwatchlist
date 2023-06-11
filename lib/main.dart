@@ -79,7 +79,7 @@ PG MasterからSyncDtを基準に対象データを取得
 Future<void> getSyncPgMaster(int fireStoreSyncDt) async{
   //FireStoreから同時日時を取得
   final query =
-  FirebaseFirestore.instance.collection('pgMaster').where('syncDt',isGreaterThanOrEqualTo: fireStoreSyncDt); // DocumentReference
+  FirebaseFirestore.instance.collection(strCnsPgMaster).where('syncDt',isGreaterThanOrEqualTo: fireStoreSyncDt); // DocumentReference
   int intpgNo = 0;
   bool updFlg = false;
   final querySnapshot = await query.get(); // QuerySnapshot
@@ -156,24 +156,31 @@ Vol MasterからSyncDtを基準に対象データを取得
 Future<void> getSyncVolMaster(int fireStoreSyncDt) async{
   //FireStoreから同時日時を取得
   final query =
-  FirebaseFirestore.instance.collection('volMaster').where('syncDt',isGreaterThanOrEqualTo: fireStoreSyncDt); // DocumentReference
+  FirebaseFirestore.instance.collection(strCnsVolMaster).where('syncDt',isGreaterThanOrEqualTo: fireStoreSyncDt); // DocumentReference
   int intpgNo = 0;double dbVol = 0;bool updFlg = false;
-
+  int intVol = 0;
   final querySnapshot = await query.get(); // QuerySnapshot
   final queryDocSnapshot = querySnapshot.docs; // List<QueryDocumentSnapshot>
   for (final snapshot in queryDocSnapshot) {
     final data = snapshot.data(); // `data()`で中身を取り出す
     intpgNo = data['pgNo'];
-    dbVol = data['vol'];
+    if (data['vol'] is int) {
+      intVol = data['vol'];
+      dbVol = intVol.toDouble();
+    } else if (data['vol'] is double) {
+      dbVol = data['vol'];
+    } else {
+
+    }
 
     //対象データをSelect
     updFlg = await volMasterSelect(intpgNo,dbVol);
     //存在する場合、UPD
     if(updFlg) {
-      volMasterUpd(data['pgNo'],data['vol'],data['pgKind'],data['airDt'],data['airDt_mvEnd'],data['volNm'],data['syncDt'],data['delFlg']);
+      volMasterUpd(data['pgNo'],dbVol,data['pgKind'],data['airDt'],data['airDt_mvEnd'],data['volNm'],data['syncDt'],data['delFlg']);
     }else {
       //存在しない場合、INS
-      volMasterIns(data['pgNo'],data['vol'],data['pgKind'],data['airDt'],data['airDt_mvEnd'],data['volNm'],data['syncDt'],data['delFlg']);
+      volMasterIns(data['pgNo'],dbVol,data['pgKind'],data['airDt'],data['airDt_mvEnd'],data['volNm'],data['syncDt'],data['delFlg']);
     }
   }
 }
@@ -469,7 +476,7 @@ class _MainScreenState extends State<MainScreen> {
 
     //FireStoreから同時日時を取得
     final collectionRef =
-    FirebaseFirestore.instance.collection('sync'); // DocumentReference
+    FirebaseFirestore.instance.collection(strCnsSync); // DocumentReference
     final querySnapshot = await collectionRef.get(); // QuerySnapshot
     final queryDocSnapshot = querySnapshot.docs; // List<QueryDocumentSnapshot>
     for (final snapshot in queryDocSnapshot) {
